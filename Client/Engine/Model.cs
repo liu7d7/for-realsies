@@ -151,7 +151,7 @@ public class Model
       var vbo = 
         new Buf(BufType.ArrayBuffer)
           .Data(
-            BufUsage.DynamicDraw, 
+            BufUsage.DynamicDraw,
             finalVerts.AsSpan());
       
       var vao = new Vao(vbo, null, ObjVtx.Attribs);
@@ -167,7 +167,12 @@ public class Model
     }
   }
 
-  public void Draw(Camera cam)
+  public void Draw()
+  {
+    Draw(Mat4.Identity);
+  }
+
+  public void Draw(Mat4 model)
   {
     foreach (var obj in _objs)
     {
@@ -179,10 +184,9 @@ public class Model
       var sh = (Shader)_sh;
       sh.Bind()
         .Defaults()
-        .Float3("u_eye", cam.Eye)
+        .Mat4("u_model", model)
         .Mat(obj.Mat);
-      obj.Vbo.Bind();
-      obj.Vao.Bind().Draw(PrimType.Triangles);
+      obj.Vao.Draw(PrimType.Triangles);
     }
   }
 

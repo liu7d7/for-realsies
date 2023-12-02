@@ -7,21 +7,6 @@ using SimplexNoise;
 
 namespace Penki.Game;
 
-[StructLayout(LayoutKind.Sequential, Pack=4)]
-public struct ChunkVtx
-{
-  public Vec3 Pos;
-  public Vec2 Uv;
-  public Vec3 Normal;
-
-  public static readonly Vao.Attrib[] Attribs =
-  {
-    Vao.Attrib.Float3,
-    Vao.Attrib.Float2,
-    Vao.Attrib.Float3
-  };
-}
-
 public class Chunk
 {
   public const int Size = 32;
@@ -36,7 +21,7 @@ public class Chunk
     Pos = pos;
     _vbo = new Buf(BufType.ArrayBuffer);
     _ibo = new Buf(BufType.ElementArrayBuffer);
-    _vao = new Vao(_vbo, _ibo, ChunkVtx.Attribs);
+    _vao = new Vao(_vbo, _ibo, ObjVtx.Attribs);
     Build();
   }
 
@@ -47,7 +32,7 @@ public class Chunk
     new Vec2i(0, 1)
   };
 
-  private void BuildNormals(ChunkVtx[] verts)
+  private void BuildNormals(ObjVtx[] verts)
   {
     for (int i = -1; i < Size + 1; i++)
     for (int j = -1; j < Size + 1; j++)
@@ -62,18 +47,18 @@ public class Chunk
 
         if (i >= 0 && j >= 0)
         {
-          verts[i * (Size + 1) + j].Normal += Vec3.Cross(b - a, c - a);
+          verts[i * (Size + 1) + j].Norm += Vec3.Cross(b - a, c - a);
         }
         
         if (i + off1.X >= 0 && i + off1.X < Size + 1 && j + off1.Y >= 0 && j + off1.Y < Size + 1)
         {
-          verts[(i + off1.X) * (Size + 1) + j + off1.Y].Normal +=
+          verts[(i + off1.X) * (Size + 1) + j + off1.Y].Norm +=
             Vec3.Cross(b - a, c - a);
         }
         
         if (i + off2.X >= 0 && i + off2.X < Size + 1 && j + off2.Y >= 0 && j + off2.Y < Size + 1)
         {
-          verts[(i + off2.X) * (Size + 1) + j + off2.Y].Normal +=
+          verts[(i + off2.X) * (Size + 1) + j + off2.Y].Norm +=
             Vec3.Cross(b - a, c - a);
         }
       }
@@ -81,7 +66,7 @@ public class Chunk
 
     for (int i = 0; i < verts.Length; i++)
     {
-      verts[i].Normal = -verts[i].Normal.Normalized();
+      verts[i].Norm = -verts[i].Norm.Normalized();
     }
   }
 
@@ -94,30 +79,18 @@ public class Chunk
 
   private void Build()
   {
-    var verts = new ChunkVtx[(Size + 1) * (Size + 1)];
+    var verts = new ObjVtx[(Size + 1) * (Size + 1)];
     for (int i = 0; i < Size + 1; i++)
     for (int j = 0; j < Size + 1; j++)
     {
       verts[i * (Size + 1) + j] = 
-        new ChunkVtx { Pos = GetPos(i, j) };
+        new ObjVtx { Pos = GetPos(i, j) };
     }
 
     BuildNormals(verts);
 
-    var indices = new List<int>();
-    for (int i = 0; i < Size; i++)
-    for (int j = 0; j < Size; j++)
-    {
-      indices.Add(i * (Size + 1) + j);
-      indices.Add((i + 1) * (Size + 1) + j);
-      indices.Add((i + 1) * (Size + 1) + j + 1);
-      indices.Add((i + 1) * (Size + 1) + j + 1);
-      indices.Add(i * (Size + 1) + j + 1);
-      indices.Add(i * (Size + 1) + j);
-    }
-
-    _vbo.Data(BufUsage.DynamicDraw, verts);
-    _ibo.Data(BufUsage.DynamicDraw, indices.ToArray());
+    _vbo.Data(BufUsage.StaticDraw, verts);
+    _ibo.Data(BufUsage.StaticDraw, Utils.QuadIndices(Size, Size));
   }
 
   private static readonly Lazy<Shader> _shader =
@@ -130,20 +103,17 @@ public class Chunk
   {
     Ambi = new Vec3(0.1f, 0.1f, 0.1f),
     Diff = new Vec3(0.3f, 0.3f, 0.3f),
-    Spec = new Vec3(0.1f, 0.1f, 0.1f),
+    Spec = new Vec3(0.0f, 0.0f, 0.0f),
     Normals = -1
   };
 
-  public void Draw(Vec3 eye)
+  public void Draw()
   {
     var shader = (Shader)_shader;
     shader.Bind()
       .Defaults()
-      .Float3("u_eye", eye)
       .Mat(_mat);
-    _ibo.Bind();
-    _vbo.Bind();
-    _vao.Bind().Draw(PrimType.Triangles);
+    _vao.Draw(PrimType.Triangles);
   }
 }
 

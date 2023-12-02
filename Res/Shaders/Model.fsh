@@ -22,7 +22,7 @@ void main() {
   vec3 diffuse = diffuse_strength * u_diff;
   
   vec3 view_dir = normalize(u_eye - v_pos);
-  vec3 reflect_dir = reflect(-light_dir, norm);
+  vec3 reflect_dir = normalize(reflect(-light_dir, norm));
   float specular_strength = pow(max(dot(view_dir, reflect_dir), 0.), 32.) * 0.5;
   vec3 specular = specular_strength * u_spec;
   

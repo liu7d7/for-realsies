@@ -5,6 +5,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Penki.Client.Engine;
+using Penki.Client.Game;
 using Penki.Client.GLU;
 using Penki.Game;
 
@@ -56,6 +57,8 @@ public static class Penki
   {
     sh
       .Mat4("u_proj", _cam.Proj)
+      .Float3("u_eye", _cam.Eye)
+      .Float1("u_time", (float) GLFW.GetTime())
       .Mat4("u_view", _cam.View);
 
     return sh;
@@ -107,6 +110,8 @@ public static class Penki
     GL.Enable(EnableCap.DebugOutput);
 
     Cursor = CursorState.Grabbed;
+    
+    _world.Add(new Player());
   }
 
   private static void Draw(FrameEventArgs args)
@@ -117,7 +122,7 @@ public static class Penki
     GL.Enable(EnableCap.DepthTest);
     GL.DepthFunc(DepthFunction.Lequal);
 
-    ((Model)_mod).Draw(_cam);
+    ((Model)_mod).Draw();
     _world.Draw();
 
     GL.BlitNamedFramebuffer(
@@ -158,6 +163,11 @@ public static class Penki
     if (args.Key == Keys.Escape)
     {
       Cursor = CursorState.Normal;
+    }
+
+    if (args.Key == Keys.R && args.Modifiers.HasFlag(KeyModifiers.Control))
+    {
+      Reloader.Load();
     }
   }
 

@@ -3,12 +3,14 @@ using Penki.Client.Engine;
 
 namespace Penki.Client.GLU;
 
-public class Shader
+public class Shader : IReloadable
 {
-  public readonly int Id;
+  public int Id { get; private set; }
+  private readonly (ShaderType, string)[] _args;
 
   public Shader(params (ShaderType, string)[] shaders)
   {
+    _args = shaders;
     Id = GL.CreateProgram();
 
     List<int> toDelete = new();
@@ -28,6 +30,8 @@ public class Shader
       }
       
       GL.AttachShader(Id, shader);
+      
+      Reloader.Register(this);
     }
 
     GL.LinkProgram(Id);
@@ -90,5 +94,17 @@ public class Shader
       .Float3("u_spec", mat.Spec)
       .Int("u_has_norm_tex", mat.Normals == -1 ? 0 : 1)
       .Int("u_norm_tex", 0);
+  }
+
+  public int ReloadId { get; set; }
+  public void Reload()
+  {
+    GL.DeleteProgram(Id);
+    
+    var shader = new Shader(_args);
+    Reloader.Deregister(shader);
+    Id = shader.Id;
+    
+    Console.WriteLine("reloaded");
   }
 }

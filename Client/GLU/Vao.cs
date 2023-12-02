@@ -8,22 +8,23 @@ public class Vao
 {
   public readonly int Id;
   private Func<int> _size;
-  private bool _hasIbo;
+  private Buf? _ibo;
+  private Buf _vbo;
   
   public Vao(Buf vbo, Buf? ibo, params Attrib[] attribs)
   {
+    (_vbo, _ibo) = (vbo, ibo);
+    
     GL.CreateVertexArrays(1, out Id);
     
     int stride = attribs.Sum(AttribSizeInBytes);
     GL.VertexArrayVertexBuffer(Id, 0, vbo.Id, IntPtr.Zero, stride);
     _size = () => vbo.Size;
-    _hasIbo = false;
     
     if (ibo != null)
     {
       GL.VertexArrayElementBuffer(Id, ibo.Id);
       _size = () => ibo.Size;
-      _hasIbo = true;
     }
 
     int off = 0;
@@ -37,16 +38,19 @@ public class Vao
     }
   }
 
-  public Vao Bind()
+  private void Bind()
   {
     GL.BindVertexArray(Id);
-    return this;
   }
 
   public void Draw(PrimType type)
   {
-    if (_hasIbo)
+    Bind();
+    
+    _vbo.Bind();
+    if (_ibo != null)
     {
+      _ibo.Bind();
       GL.DrawElements(type, _size(), DrawElementsType.UnsignedInt, 0);
     }
     else

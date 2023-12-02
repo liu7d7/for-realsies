@@ -43,8 +43,17 @@ public class Camera
       Pos += dir.Y * _worldUp * 0.01f;
     }
 
+    private CursorState _lastCursorState = CursorState.Grabbed;
+
     public void Look()
     {
+      if (_lastCursorState == CursorState.Normal &&
+          Penki.Cursor == CursorState.Grabbed)
+      {
+        _first = true;
+      }
+      
+      _lastCursorState = Penki.Cursor;
       if (Penki.Cursor != CursorState.Grabbed || !Penki.InFocus)
         return;
       float xPos = Penki.Mouse.X;

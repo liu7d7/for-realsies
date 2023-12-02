@@ -10,12 +10,12 @@ layout(location = 2) out vec3 v_norm;
 
 uniform mat4 u_proj;
 uniform mat4 u_view;
-uniform mat4 u_model;
+uniform mat4 u_model = mat4(1.);
 
 void main() {
-  gl_Position = u_proj * u_view /* * u_model */ * vec4(pos, 1.);
+  gl_Position = u_proj * u_view * u_model * vec4(pos, 1.);
   v_pos = pos;
   v_uv = uv;
-  v_norm = norm;
-//   v_norm = mat3(transpose(inverse(u_model))) * norm;
+//   v_norm = norm;
+  v_norm = mat3(transpose(inverse(u_model))) * norm;
 }

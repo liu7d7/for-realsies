@@ -74,7 +74,7 @@ public class Lazy<T>
     _supplier = supplier;
   }
 
-  public T It
+  public T Get
   {
     get
     {
@@ -93,7 +93,7 @@ public class Lazy<T>
     }
   }
 
-  public static implicit operator T(Lazy<T> lazy) => lazy.It;
+  public static implicit operator T(Lazy<T> lazy) => lazy.Get;
 }
 
 public static class Extensions
@@ -135,10 +135,36 @@ public static class Extensions
   {
     return MathHelper.RadiansToDegrees(rad);
   }
+  
+  public static float Cos(this float rad)
+  {
+    return MathF.Cos(rad);
+  }
+  
+  public static float Sin(this float rad)
+  {
+    return MathF.Sin(rad);
+  }
+  
+  public static float Lerp(this float start, float end, float delta)
+  {
+    return MathHelper.Lerp(start, end, delta);
+  }
+
 
   public static Span<T> AsSpan<T>(this List<T> list)
   {
     return CollectionsMarshal.AsSpan(list);
+  }
+
+  public static float Dist(this Vec3 lhs, Vec3 rhs)
+  {
+    return (lhs - rhs).Length;
+  }
+  
+  public static float Dist2(this Vec3 lhs, Vec3 rhs)
+  {
+    return (lhs - rhs).LengthSquared;
   }
 
 }
