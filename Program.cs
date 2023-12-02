@@ -1,0 +1,13 @@
+﻿using OpenTK.Windowing.Desktop;
+
+namespace Penki;
+
+using Client;
+
+class Program
+{
+  public static void Main(string[] args)
+  {
+    Penki.Run();
+  }
+}
