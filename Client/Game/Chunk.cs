@@ -1,11 +1,8 @@
-﻿using System.Runtime.InteropServices;
-using OpenTK.Graphics.OpenGL4;
-using Penki.Client;
-using Penki.Client.Engine;
+﻿using Penki.Client.Engine;
 using Penki.Client.GLU;
 using SimplexNoise;
 
-namespace Penki.Game;
+namespace Penki.Client.Game;
 
 public class Chunk
 {
@@ -92,26 +89,24 @@ public class Chunk
     _vbo.Data(BufUsage.StaticDraw, verts);
     _ibo.Data(BufUsage.StaticDraw, Utils.QuadIndices(Size, Size));
   }
-
-  private static readonly Lazy<Shader> _shader =
-    new(() =>
-      new Shader(
-        (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
-        (ShaderType.FragmentShader, @"Res\Shaders\Model.fsh")));
-
+  
   private static readonly Material _mat = new Material
   {
-    Ambi = new Vec3(0.1f, 0.1f, 0.1f),
-    Diff = new Vec3(0.3f, 0.3f, 0.3f),
-    Spec = new Vec3(0.0f, 0.0f, 0.0f),
+    Ambi = new Vec3(0.3f, 0.49f, 0.16f),
+    Diff = new Vec3(0.3f, 0.49f, 0.16f) * 0.2f,
+    Spec = Vec3.Zero,
     Normals = -1
   };
 
+  private static readonly uint _rand = (uint)Random.Shared.Next();
+
   public void Draw()
   {
-    var shader = (Shader)_shader;
+    var shader = (Shader)Model.Shader;
     shader.Bind()
       .Defaults()
+      .Uint("u_id", _rand)
+      .Mat4("u_model", Mat4.Identity)
       .Mat(_mat);
     _vao.Draw(PrimType.Triangles);
   }

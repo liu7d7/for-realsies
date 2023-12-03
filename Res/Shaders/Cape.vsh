@@ -9,6 +9,7 @@ layout(location = 2) out vec3 v_norm;
 
 uniform mat4 u_proj;
 uniform mat4 u_view;
+uniform mat4 u_model;
 uniform float u_start;
 uniform float u_end;
 uniform float u_slices;
@@ -18,9 +19,9 @@ uniform float u_time;
 vec3 get_pos(float l, float s) {
   float arc = radians(mix(u_start, u_end, s / u_slices));
   vec3 pos = vec3(cos(arc), (l - 1) / u_layers, sin(arc));
-  vec3 final_pos = pos * vec3(1., 2., 1.) + vec3(0., 5., 0.);
-  final_pos.xz *= pow(1 - (pos.y * 0.7), 2.5) * 1.3;
-  final_pos.y += pow(1 - pos.y, 2.5) * 0.16 * 
+  vec3 final_pos = pos * vec3(1., 2., 1.);
+  final_pos.xz *= pow(1 - (pos.y * 0.7), 4) * 1;
+  final_pos.y += pow(1 - pos.y, 4) * 0.1 * 
     (sin(arc * 5 + u_time) + cos(arc * 7 + u_time * 0.5));
   return final_pos;
 }
@@ -65,7 +66,7 @@ vec3 get_normal() {
 
 void main() {
   vec3 pos = get_pos(layer, slice);
-  gl_Position = u_proj * u_view * vec4(pos, 1.);
+  gl_Position = u_proj * u_view * u_model * vec4(pos, 1.);
   v_pos = pos;
-  v_norm = get_normal();
+  v_norm = mat3(transpose(inverse(u_model))) * get_normal();
 }

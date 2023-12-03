@@ -22,11 +22,12 @@ public static class Penki
         Flags = ContextFlags.Debug,
         API = ContextAPI.OpenGL,
         APIVersion = new Version(4, 6),
-        Profile = ContextProfile.Core
+        Profile = ContextProfile.Core,
+        Title = "ﾍﾟﾝｷ"
       });
 
-  public static Vector2i Size => _win.Size;
-  public static Vector2 SizeF => new(_win.Size.X, _win.Size.Y);
+  public static Vector2i Size => _win.ClientSize;
+  public static Vector2 SizeF => new(_win.ClientSize.X, _win.ClientSize.Y);
 
   public static CursorState Cursor
   {
@@ -39,27 +40,39 @@ public static class Penki
   private static readonly Lazy<Fbo> _fbo =
     new(() =>
       new Fbo(
-        (FramebufferAttachment.ColorAttachment0,
-          TexConf.Rgba32(Size)),
-        (FramebufferAttachment.DepthAttachment,
-          TexConf.Depth24(Size))));
+        (FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(Size)),
+        (FramebufferAttachment.ColorAttachment1, TexConf.R32(Size)),
+        (FramebufferAttachment.ColorAttachment2, TexConf.Rgba32(Size)),
+        (FramebufferAttachment.DepthAttachment, TexConf.Depth24(Size))));
 
-  private static readonly Lazy<Model> _mod =
-    new(() => new Model(@"Res\Models\Monkey.obj"));
+  private static readonly Lazy<Shader> _outline =
+    new(() =>
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\Postprocess.vsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Outline.fsh")));
 
-  private static readonly Camera _cam = new Camera();
 
-  private static readonly World _world = new World(_cam);
+  private static readonly Player _player = new Player();
+
+  private static Camera Cam => _player.Cam;
+
+  private static readonly World _world = 
+    new World(_player.Cam)
+      .Also(it => it.Add(_player));
 
   private static readonly DebugProc _logDelegate = Log;
 
   public static Shader Defaults(this Shader sh)
   {
     sh
-      .Mat4("u_proj", _cam.Proj)
-      .Float3("u_eye", _cam.Eye)
+      .Mat4("u_proj", Cam.Proj)
+      .Float3("u_eye", Cam.Eye)
       .Float1("u_time", (float) GLFW.GetTime())
-      .Mat4("u_view", _cam.View);
+      .Float2("u_one_texel", Vec2.One / SizeF)
+      .Float1("u_z_near", Camera.ZNear)
+      .Float1("u_z_far", Camera.ZFar)
+      .Float3("u_front", Cam.Front)
+      .Mat4("u_view", Cam.View);
 
     return sh;
   }
@@ -110,27 +123,42 @@ public static class Penki
     GL.Enable(EnableCap.DebugOutput);
 
     Cursor = CursorState.Grabbed;
-    
-    _world.Add(new Player());
   }
 
   private static void Draw(FrameEventArgs args)
   {
-    ((Fbo)_fbo).Bind()
-      .Clear();
+    var fbo = (Fbo)_fbo;
+    fbo.Bind()
+      .DrawBuffers(
+        DrawBuffersEnum.ColorAttachment0,
+        DrawBuffersEnum.ColorAttachment1,
+        DrawBuffersEnum.ColorAttachment2)
+      .Clear(ClearBuffer.Color, 0, stackalloc float[] {0, 0, 0, 0})
+      .Clear(ClearBuffer.Color, 1, stackalloc uint[] {0, 0, 0, 0})
+      .Clear(ClearBuffer.Color, 2, stackalloc float[] {0, 0, 0, 0})
+      .Clear(ClearBuffer.Depth, 0, stackalloc float[] {1});
     
     GL.Enable(EnableCap.DepthTest);
-    GL.DepthFunc(DepthFunction.Lequal);
+    GL.DepthFunc(DepthFunction.Less);
 
-    ((Model)_mod).Draw();
     _world.Draw();
+    
+    GL.Disable(EnableCap.DepthTest);
 
-    GL.BlitNamedFramebuffer(
-      ((Fbo)_fbo).Id, 0,
-      0, 0, Size.X, Size.Y,
-      0, 0, Size.X, Size.Y,
-      BufMask.ColorBufferBit, BlitFilter.Linear);
-
+    fbo.BindTex(FramebufferAttachment.ColorAttachment0, 0);
+    fbo.BindTex(FramebufferAttachment.ColorAttachment1, 1);
+    fbo.BindTex(FramebufferAttachment.ColorAttachment2, 2);
+    fbo.BindTex(FramebufferAttachment.DepthAttachment, 3);
+    _outline.Get.Bind()
+      .Defaults()
+      .Int("u_tex_col", 0)
+      .Int("u_tex_id", 1)
+      .Int("u_tex_norm", 2)
+      .Int("u_tex_depth", 3);
+    Fbo.Bind0();
+    GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+    PostProcess.DrawFullscreenQuad();
+    
     _win.SwapBuffers();
   }
 
@@ -145,12 +173,12 @@ public static class Penki
 
   private static void Tick(FrameEventArgs args)
   {
-    _cam.Tick();
+    Cam.Tick();
   }
 
   private static void MouseMove(MouseMoveEventArgs args)
   {
-    _cam.Look();
+    Cam.Look();
   }
 
   private static void MouseDown(MouseButtonEventArgs args)
@@ -160,14 +188,14 @@ public static class Penki
 
   private static void KeyDown(KeyboardKeyEventArgs args)
   {
-    if (args.Key == Keys.Escape)
+    switch (args.Key)
     {
-      Cursor = CursorState.Normal;
-    }
-
-    if (args.Key == Keys.R && args.Modifiers.HasFlag(KeyModifiers.Control))
-    {
-      Reloader.Load();
+      case Keys.Escape:
+        Cursor = CursorState.Normal;
+        break;
+      case Keys.R when args.Modifiers.HasFlag(KeyModifiers.Control):
+        Reloader.Load();
+        break;
     }
   }
 

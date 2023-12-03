@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Diagnostics;
+using System.Drawing;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -33,6 +34,19 @@ public record struct TexConf(
     return new TexConf(
       PixIntFmt.Rgba32f,
       PixFmt.Rgba,
+      PixType.Float,
+      MinFilter.Linear,
+      MagFilter.Linear,
+      size.X,
+      size.Y
+    );
+  }
+  
+  public static TexConf R32(Vec2i size)
+  {
+    return new TexConf(
+      PixIntFmt.R32ui,
+      PixFmt.RedInteger,
       PixType.UnsignedInt,
       MinFilter.Linear,
       MagFilter.Linear,
@@ -84,15 +98,53 @@ public class Fbo
     return this;
   }
 
+  public Fbo BindTex(FboComp comp, int unit)
+  {
+    GL.ActiveTexture(TextureUnit.Texture0 + unit);
+    GL.BindTexture(TextureTarget.Texture2D, _comps.Find(it => it.A == comp)!.C);
+    return this;
+  }
+  
+  public int GetTex(FboComp comp)
+  {
+    return _comps.Find(it => it.A == comp)!.C;
+  }
+
   public Fbo Bind()
   {
     GL.BindFramebuffer(FramebufferTarget.Framebuffer, Id);
     return this;
   }
 
-  public Fbo Clear()
+  public static void Bind0()
   {
-    GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+    GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+  }
+
+  public Fbo Clear(ClearBuffer buf, int drawBuffer, Span<uint> value)
+  {
+    Debug.Assert(buf == ClearBuffer.Color && value.Length == 4 || buf == ClearBuffer.Depth && value.Length == 1);
+    GL.ClearBuffer(buf, drawBuffer, ref value[0]);
+    return this;
+  }
+  
+  public Fbo Clear(ClearBuffer buf, int drawBuffer, Span<int> value)
+  {
+    Debug.Assert(buf == ClearBuffer.Color && value.Length == 4 || buf == ClearBuffer.Depth && value.Length == 1);
+    GL.ClearBuffer(buf, drawBuffer, ref value[0]);
+    return this;
+  }
+  
+  public Fbo Clear(ClearBuffer buf, int drawBuffer, Span<float> value)
+  {
+    Debug.Assert(buf == ClearBuffer.Color && value.Length == 4 || buf == ClearBuffer.Depth && value.Length == 1);
+    GL.ClearBuffer(buf, drawBuffer, ref value[0]);
+    return this;
+  }
+
+  public Fbo DrawBuffers(params DrawBuffersEnum[] comps)
+  {
+    GL.NamedFramebufferDrawBuffers(Id, comps.Length, comps);
     return this;
   }
 

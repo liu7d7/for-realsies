@@ -14,6 +14,7 @@ public class Material
   public required Vec3 Ambi;
   public required Vec3 Spec;
   public required int Normals;
+  public float Shine = 32;
 }
 
 public class ObjObj
@@ -23,14 +24,15 @@ public class ObjObj
   public required string Name;
   public required Vao Vao;
   public required Buf Vbo;
+  public required uint Rand;
 }
 
 public class Model
 {
-  private readonly List<ObjObj> _objs = new();
+  public readonly List<ObjObj> Objs = new();
   private readonly List<Tex> _texes;
 
-  private static readonly Lazy<Shader> _sh =
+  public static readonly Lazy<Shader> Shader =
     new(() =>
       new Shader(
         (ShaderType.VertexShader, "Res/Shaders/Model.vsh"),
@@ -71,6 +73,9 @@ public class Model
         vertOff += verts.Count;
         uvOff += uvs.Count;
         normOff += norms.Count;
+        verts.Clear();
+        norms.Clear();
+        uvs.Clear();
 
         continue;
       }
@@ -156,17 +161,18 @@ public class Model
       
       var vao = new Vao(vbo, null, ObjVtx.Attribs);
 
-      _objs.Add(new ObjObj
+      Objs.Add(new ObjObj
       {
         Name = name,
         Mat = mats[name],
         Mesh = finalVerts,
         Vbo = vbo,
-        Vao = vao
+        Vao = vao,
+        Rand = (uint)Random.Shared.Next()
       });
     }
   }
-
+  
   public void Draw()
   {
     Draw(Mat4.Identity);
@@ -174,17 +180,18 @@ public class Model
 
   public void Draw(Mat4 model)
   {
-    foreach (var obj in _objs)
+    foreach (var obj in Objs)
     {
       if (obj.Mat.Normals != -1)
       {
         _texes[obj.Mat.Normals].Bind(TexUnit.Texture0);
       }
       
-      var sh = (Shader)_sh;
+      var sh = (Shader)Shader;
       sh.Bind()
         .Defaults()
         .Mat4("u_model", model)
+        .Uint("u_id", obj.Rand)
         .Mat(obj.Mat);
       obj.Vao.Draw(PrimType.Triangles);
     }
@@ -229,6 +236,11 @@ public class Model
             texes.Add(new Tex(@$"{dir}\{it}"));
             return texes.Count - 1;
           });
+
+      var shine =
+        mat.Value["Shine"]
+          ?.Value<float>()
+        ?? 32.0f;
       
       mats.Add(
         name, 
@@ -237,7 +249,8 @@ public class Model
           Diff = diff,
           Ambi = ambi,
           Spec = spec,
-          Normals = norm ?? -1
+          Normals = norm ?? -1,
+          Shine = shine
         });
     }
 

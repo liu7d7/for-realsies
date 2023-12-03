@@ -2,7 +2,7 @@
 
 public abstract class Entity
 {
-  public Vec3 Pos;
+  public abstract Vec3 Pos { get; set; }
   
   public abstract void Draw(Mat4 model);
   public abstract void Tick();

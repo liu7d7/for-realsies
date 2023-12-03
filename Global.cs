@@ -167,4 +167,26 @@ public static class Extensions
     return (lhs - rhs).LengthSquared;
   }
 
+  public static void Scale(this ref Mat4 mat, Vec3 scale)
+  {
+    var trans = mat.ExtractTranslation();
+    mat = mat.ClearTranslation();
+    mat *= Mat4.CreateScale(scale);
+    mat *= Mat4.CreateTranslation(trans);
+  }
+  
+  public static void Rotate(this ref Mat4 mat, Vec3 axis, float deg)
+  {
+    var trans = mat.ExtractTranslation();
+    mat = mat.ClearTranslation();
+    mat *= Mat4.CreateFromAxisAngle(axis.Normalized(), deg.Rad());
+    mat *= Mat4.CreateTranslation(trans);
+  }
+
+  public static void Translate(this ref Mat4 mat, Vec3 trans)
+  {
+    var (x, y, z) = trans;
+    mat *= Mat4.CreateTranslation(Vec4.Transform(new Vec4(x, y, z, 1.0f), mat.ExtractRotation()).Xyz);
+  }
+
 }

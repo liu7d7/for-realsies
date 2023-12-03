@@ -86,12 +86,19 @@ public class Shader : IReloadable
     return this;
   }
 
+  public Shader Uint(string name, uint val)
+  {
+    GL.Uniform1(GL.GetUniformLocation(Id, name), val);
+    return this;
+  }
+
   public Shader Mat(Material mat)
   {
     return 
       Float3("u_ambi", mat.Ambi)
       .Float3("u_diff", mat.Diff)
       .Float3("u_spec", mat.Spec)
+      .Float1("u_shine", mat.Shine)
       .Int("u_has_norm_tex", mat.Normals == -1 ? 0 : 1)
       .Int("u_norm_tex", 0);
   }
@@ -104,7 +111,5 @@ public class Shader : IReloadable
     var shader = new Shader(_args);
     Reloader.Deregister(shader);
     Id = shader.Id;
-    
-    Console.WriteLine("reloaded");
   }
 }
