@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using System.Runtime.InteropServices;
+using OpenTK.Graphics.OpenGL4;
 using Penki.Client.Engine;
 
 namespace Penki.Client.GLU;
@@ -79,6 +80,18 @@ public class Shader : IReloadable
     GL.Uniform3(GL.GetUniformLocation(Id, name), val);
     return this;
   }
+  
+  public Shader Float3V(string name, Vec3[] val)
+  {
+    unsafe
+    {
+      fixed (float* arr = MemoryMarshal.Cast<Vec3, float>(val.AsSpan()))
+      {
+        GL.Uniform3(GL.GetUniformLocation(Id, name), val.Length, arr);
+      }
+    }
+    return this;
+  }
 
   public Shader Float4(string name, Vec4 val)
   {
@@ -100,7 +113,9 @@ public class Shader : IReloadable
       .Float3("u_spec", mat.Spec)
       .Float1("u_shine", mat.Shine)
       .Int("u_has_norm_tex", mat.Normals == -1 ? 0 : 1)
-      .Int("u_norm_tex", 0);
+      .Int("u_norm_tex", 0)
+      .Int("u_has_alpha_tex", mat.Alpha == -1 ? 0 : 1)
+      .Int("u_alpha_tex", 1);
   }
 
   public int ReloadId { get; set; }

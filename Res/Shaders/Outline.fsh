@@ -37,12 +37,12 @@ void main() {
         break;
       }
       
-      if (dot(normalize(this_pix_norm), normalize(other_pix_norm)) < 0.9) {
+      if (dot(normalize(this_pix_norm), normalize(other_pix_norm)) < 0.9 && this_pix_id != 0) {
         found = true;
         break;
       }
       
-      if (abs(linearize_depth(this_pix_depth) - linearize_depth(other_pix_depth)) > 0.5 * depth_mul) {
+      if (abs(linearize_depth(this_pix_depth) - linearize_depth(other_pix_depth)) > 0.5 * depth_mul && this_pix_id != 0) {
         found = true;
         break;
       }

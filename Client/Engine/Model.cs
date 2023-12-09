@@ -14,6 +14,7 @@ public class Material
   public required Vec3 Ambi;
   public required Vec3 Spec;
   public required int Normals;
+  public required int Alpha;
   public float Shine = 32;
 }
 
@@ -73,6 +74,7 @@ public class Model
         vertOff += verts.Count;
         uvOff += uvs.Count;
         normOff += norms.Count;
+        finalVerts.Clear();
         verts.Clear();
         norms.Clear();
         uvs.Clear();
@@ -187,6 +189,11 @@ public class Model
         _texes[obj.Mat.Normals].Bind(TexUnit.Texture0);
       }
       
+      if (obj.Mat.Alpha != -1)
+      {
+        _texes[obj.Mat.Alpha].Bind(TexUnit.Texture1);
+      }
+      
       var sh = (Shader)Shader;
       sh.Bind()
         .Defaults()
@@ -236,6 +243,15 @@ public class Model
             texes.Add(new Tex(@$"{dir}\{it}"));
             return texes.Count - 1;
           });
+      
+      var alpha = 
+        mat.Value["Alpha"]
+          ?.Value<string>()
+          ?.Let(it =>
+          {
+            texes.Add(new Tex(@$"{dir}\{it}"));
+            return texes.Count - 1;
+          });
 
       var shine =
         mat.Value["Shine"]
@@ -250,13 +266,25 @@ public class Model
           Ambi = ambi,
           Spec = spec,
           Normals = norm ?? -1,
-          Shine = shine
+          Shine = shine,
+          Alpha = alpha ?? -1
         });
     }
 
     return (mats, texes);
   }
 }
+
+// public class InstancedModel<T> : Model
+//   where T : struct, IVertex
+// {
+//   private readonly List<T> _instanceData;
+//   
+//   public InstancedModel(string path) : base(path)
+//   {
+//     
+//   }
+// }
 
 [StructLayout(LayoutKind.Sequential, Pack=4)]
 public struct ObjVtx

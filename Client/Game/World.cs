@@ -20,11 +20,13 @@ public class World
     _entities.Add(entity);
   }
 
+  private const int RenderDistance = 3;
+
   private void GenerateChunks()
   {
     var chunkPos = Cam.Pos.ToChunk();
-    for (int i = -5; i <= 5; i++)
-    for (int j = -5; j <= 5; j++)
+    for (int i = -RenderDistance; i <= RenderDistance; i++)
+    for (int j = -RenderDistance; j <= RenderDistance; j++)
     {
       var final = chunkPos + new Vec2i(i, j);
       if (!_chunks.ContainsKey(final))
@@ -39,8 +41,8 @@ public class World
     GenerateChunks();
     
     var chunkPos = Cam.Pos.ToChunk();
-    for (int i = -5; i <= 5; i++)
-    for (int j = -5; j <= 5; j++)
+    for (int i = -RenderDistance; i <= RenderDistance; i++)
+    for (int j = -RenderDistance; j <= RenderDistance; j++)
     {
       var final = chunkPos + new Vec2i(i, j);
       _chunks[final].Draw();

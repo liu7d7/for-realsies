@@ -189,4 +189,41 @@ public static class Extensions
     mat *= Mat4.CreateTranslation(Vec4.Transform(new Vec4(x, y, z, 1.0f), mat.ExtractRotation()).Xyz);
   }
 
+  public static Mat4 ChangeAxis(this Mat4 mat, Vec3 axis, int axNum)
+  {
+    var t = axis.Normalized();
+    int min = 0;
+    if (Math.Abs(t[min]) > Math.Abs(t[1])) min = 1;
+    if (Math.Abs(t[min]) > Math.Abs(t[2])) min = 2;
+
+    var m = Vec3.Zero;
+    m[min] = 1;
+
+    var f = Vec3.Cross(t, m).Normalized();
+    var s = Vec3.Cross(t, f).Normalized();
+    var (x, y, z) = mat.ExtractTranslation();
+
+    var changed = axNum switch
+    {
+      0 => new Mat4(
+        t.X, t.Y, t.Z, 0, 
+        f.X, f.Y, f.Z, 0, 
+        s.X, s.Y, s.Z, 0, 
+        x, y, z, 1),
+      1 => new Mat4(
+        s.X, t.Y, s.Z, 0, 
+        t.X, t.Y, t.Z, 0, 
+        f.X, f.Y, f.Z, 0, 
+        x, y, z, 1),
+      2 => new Mat4(
+        f.X, f.Y, f.Z, 0, 
+        s.X, s.Y, s.Z, 0, 
+        t.X, t.Y, t.Z, 0, 
+        x, y, z, 1),
+      _ => throw new Exception("axis out of bounds!")
+    };
+    
+    return changed;
+  }
+
 }

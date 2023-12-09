@@ -67,10 +67,11 @@ public class Player : Entity
   private static readonly Material _mat =
     new Material
     {
-      Ambi = new Vec3(0.29f, 0.00f, 0.00f),
-      Diff = new Vec3(0.23f, 0.00f, 0.00f),
+      Ambi = new Vec3(0.3f, 0.3f, 0.3f),
+      Diff = new Vec3(0.3f, 0.3f, 0.3f),
       Spec = Vec3.One * 1.66f,
-      Normals = -1
+      Normals = -1,
+      Alpha = -1
     };
 
   public readonly Camera Cam = new Camera();
@@ -83,25 +84,25 @@ public class Player : Entity
   
   public override void Draw(Mat4 model)
   { 
-    model *= Mat4.CreateTranslation(Pos);
-    model.Rotate(Vec3.UnitY, 180f - Cam.Yaw);
-    Console.WriteLine(Pos);
-    _shader.Get.Bind()
-      .Mat(_mat)
-      .Float1("u_slices", Slices)
-      .Float1("u_layers", Layers)
-      .Float1("u_start", Start)
-      .Float1("u_end", End)
-      .Mat4("u_model", model)
-      .Uint("u_id", _rand)
-      .Defaults();
-    _cape.Get.Item1.Draw(PrimType.Triangles);
-    
-    model.Rotate(Vec3.UnitY, 180f);
-    model.Scale(Vec3.One * 0.5f);
-    model.Translate(Vec3.UnitY * 1.5f);
-    model.Translate(Vec3.UnitX * -0.311f);
-    _hood.Get.Draw(model);
+    // model *= Mat4.CreateTranslation(Pos);
+    // model.Rotate(Vec3.UnitY, 180f - Cam.Yaw);
+    //
+    // _shader.Get.Bind()
+    //   .Defaults()
+    //   .Mat(_mat)
+    //   .Float1("u_slices", Slices)
+    //   .Float1("u_layers", Layers)
+    //   .Float1("u_start", Start)
+    //   .Float1("u_end", End)
+    //   .Mat4("u_model", model)
+    //   .Uint("u_id", _rand);
+    // _cape.Get.Item1.Draw(PrimType.Triangles);
+    //
+    // model.Rotate(Vec3.UnitY, 180f);
+    // model.Scale(Vec3.One * 0.5f);
+    // model.Translate(Vec3.UnitY * 1.5f);
+    // model.Translate(Vec3.UnitX * -0.311f);
+    // _hood.Get.Draw(model);
   }
 
   public override void Tick()

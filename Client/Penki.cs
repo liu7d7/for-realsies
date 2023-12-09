@@ -37,20 +37,31 @@ public static class Penki
   public static bool InFocus => _win.IsFocused;
   public static Vector2 Mouse => _win.MousePosition;
 
+  private static readonly Vec2i _fboSize = Size / 4;
+
   private static readonly Lazy<Fbo> _fbo =
     new(() =>
       new Fbo(
-        (FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(Size)),
-        (FramebufferAttachment.ColorAttachment1, TexConf.R32(Size)),
-        (FramebufferAttachment.ColorAttachment2, TexConf.Rgba32(Size)),
-        (FramebufferAttachment.DepthAttachment, TexConf.Depth24(Size))));
+        (FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(_fboSize)),
+        (FramebufferAttachment.ColorAttachment1, TexConf.R32(_fboSize)),
+        (FramebufferAttachment.ColorAttachment2, TexConf.Rgba32(_fboSize)),
+        (FramebufferAttachment.DepthAttachment, TexConf.Depth24(_fboSize))));
+  
+  private static readonly Lazy<Fbo> _tmpFbo =
+    new(() =>
+      new Fbo((FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(_fboSize))));
 
   private static readonly Lazy<Shader> _outline =
     new(() =>
       new Shader(
         (ShaderType.VertexShader, @"Res\Shaders\Postprocess.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Outline.fsh")));
-
+  
+  private static readonly Lazy<Shader> _dither =
+    new(() =>
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\Postprocess.vsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Dither.fsh")));
 
   private static readonly Player _player = new Player();
 
@@ -60,9 +71,12 @@ public static class Penki
     new World(_player.Cam)
       .Also(it => it.Add(_player));
 
+  private static readonly Lazy<Skybox> _sky = new(() =>
+    new Skybox(@"Res\Skyboxes\Anime\Anime"));
+
   private static readonly DebugProc _logDelegate = Log;
 
-  public static Shader Defaults(this Shader sh)
+  public static Shader Defaults(this Shader sh, bool translation = true)
   {
     sh
       .Mat4("u_proj", Cam.Proj)
@@ -72,7 +86,8 @@ public static class Penki
       .Float1("u_z_near", Camera.ZNear)
       .Float1("u_z_far", Camera.ZFar)
       .Float3("u_front", Cam.Front)
-      .Mat4("u_view", Cam.View);
+      .Mat4("u_model", Mat4.Identity)
+      .Mat4("u_view", translation ? Cam.View : new Matrix4(new Matrix3(Cam.View)));
 
     return sh;
   }
@@ -123,10 +138,15 @@ public static class Penki
     GL.Enable(EnableCap.DebugOutput);
 
     Cursor = CursorState.Grabbed;
+
+    var tex = new Tex(@"Res\Skyboxes\Noon\Noon.Left.png");
+    tex.Bind(TextureUnit.Texture5);
   }
 
   private static void Draw(FrameEventArgs args)
   {
+    GL.Viewport(0, 0, _fboSize.X, _fboSize.Y);
+    
     var fbo = (Fbo)_fbo;
     fbo.Bind()
       .DrawBuffers(
@@ -140,33 +160,51 @@ public static class Penki
     
     GL.Enable(EnableCap.DepthTest);
     GL.DepthFunc(DepthFunction.Less);
-
+    
     _world.Draw();
     
+    GL.DepthFunc(DepthFunction.Lequal);
+    
+    _sky.Get.Draw();
+    
     GL.Disable(EnableCap.DepthTest);
+    
+    // GL.BlitNamedFramebuffer(
+    //   fbo.Id, 0,
+    //   0, 0, _fboSize.X, _fboSize.Y,
+    //   0, 0, Size.X, Size.Y,
+    //   ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+    
+    // GL.Viewport(0, 0, Size.X, Size.Y);
 
+    _tmpFbo.Get.Bind();
     fbo.BindTex(FramebufferAttachment.ColorAttachment0, 0);
-    fbo.BindTex(FramebufferAttachment.ColorAttachment1, 1);
-    fbo.BindTex(FramebufferAttachment.ColorAttachment2, 2);
-    fbo.BindTex(FramebufferAttachment.DepthAttachment, 3);
-    _outline.Get.Bind()
+    _dither.Get.Bind()
       .Defaults()
       .Int("u_tex_col", 0)
-      .Int("u_tex_id", 1)
-      .Int("u_tex_norm", 2)
-      .Int("u_tex_depth", 3);
-    Fbo.Bind0();
-    GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+      .Int("u_pal_size", DreamyHaze.Colors.Length)
+      .Float3V("u_pal", DreamyHaze.Colors);
     PostProcess.DrawFullscreenQuad();
     
+    GL.BlitNamedFramebuffer(
+      _tmpFbo.Get.Id, 0,
+      0, 0, _fboSize.X, _fboSize.Y,
+      0, 0, Size.X, Size.Y,
+      ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
+
     _win.SwapBuffers();
   }
 
   private static void Resize(ResizeEventArgs args)
   {
     ((Fbo)_fbo).Resize(
-      (FboComp.ColorAttachment0, args.Size),
-      (FboComp.DepthAttachment, args.Size));
+      (FboComp.ColorAttachment0, _fboSize),
+      (FboComp.ColorAttachment1, _fboSize),
+      (FboComp.ColorAttachment2, _fboSize),
+      (FboComp.DepthAttachment, _fboSize));
+    
+    ((Fbo)_tmpFbo).Resize(
+      (FboComp.ColorAttachment0, _fboSize));
 
     GL.Viewport(0, 0, args.Size.X, args.Size.Y);
   }

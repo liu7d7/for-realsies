@@ -15,6 +15,8 @@ uniform vec3 u_spec;
 uniform float u_shine;
 uniform bool u_has_norm_tex;
 uniform sampler2D u_norm_tex;
+uniform bool u_has_alpha_tex;
+uniform sampler2D u_alpha_tex;
 uniform highp uint u_id;
 
 const vec3 light_dir = vec3(-1, 2, -1);
@@ -36,7 +38,13 @@ vec3 to_rgb(vec3 c) {
 }
 
 void main() {
+  if (u_has_alpha_tex && texture(u_alpha_tex, v_uv).r < 0.9999) discard;
+
   vec3 norm = u_has_norm_tex ? normalize(2 * (texture(u_norm_tex, v_uv).rgb - 0.5)) : normalize(v_norm);
+  
+  if (!gl_FrontFacing) {
+    norm = -norm;
+  }
   
   float diffuse_strength = max(dot(norm, light_dir), 0.);
   vec3 diffuse = diffuse_strength * u_diff;
@@ -46,10 +54,7 @@ void main() {
   float specular_strength = pow(max(dot(view_dir, reflect_dir), 0.), u_shine) * 0.5;
   vec3 specular = specular_strength * u_spec;
   
-  vec3 hsv = to_hsv(u_ambi + diffuse + specular);
-  hsv.z = ceil(hsv.z * 3.) / 3.;
-  vec3 result = to_rgb(hsv);
-  f_color = vec4(result, 1.);
+  f_color = vec4(u_ambi + diffuse + specular, 1.);
   f_id = u_id;
   f_norm = vec4(norm, 0.);
 }

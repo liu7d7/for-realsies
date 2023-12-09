@@ -9,12 +9,12 @@ public static class Utils
     for (int i = 0; i < height; i++)
     for (int j = 0; j < width; j++)
     {
-      indices.Add(i * (width + 1) + j);
+      indices.Add((i + 1) * (width + 1) + j + 1);
       indices.Add((i + 1) * (width + 1) + j);
-      indices.Add((i + 1) * (width + 1) + j + 1);
-      indices.Add((i + 1) * (width + 1) + j + 1);
-      indices.Add(i * (width + 1) + j + 1);
       indices.Add(i * (width + 1) + j);
+      indices.Add(i * (width + 1) + j);
+      indices.Add(i * (width + 1) + j + 1);
+      indices.Add((i + 1) * (width + 1) + j + 1);
     }
 
     return indices.AsSpan();

@@ -1,0 +1,9 @@
+﻿{
+  "Grass": {
+    "Ambi": [0.2, 0.24, 0.31],
+    "Diff": [0.24, 0.43, 0.44],
+    "Spec": [0, 0, 0, 0],
+    "Norm": "Grass.Normals.png",
+    "Alpha": "Grass.Alpha.png"
+  }
+}

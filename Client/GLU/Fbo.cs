@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Drawing;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -35,8 +34,8 @@ public record struct TexConf(
       PixIntFmt.Rgba32f,
       PixFmt.Rgba,
       PixType.Float,
-      MinFilter.Linear,
-      MagFilter.Linear,
+      MinFilter.Nearest,
+      MagFilter.Nearest,
       size.X,
       size.Y
     );
@@ -48,8 +47,8 @@ public record struct TexConf(
       PixIntFmt.R32ui,
       PixFmt.RedInteger,
       PixType.UnsignedInt,
-      MinFilter.Linear,
-      MagFilter.Linear,
+      MinFilter.Nearest,
+      MagFilter.Nearest,
       size.X,
       size.Y
     );

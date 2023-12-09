@@ -12,14 +12,15 @@ public class Chunk
   private readonly Vao _vao;
   private readonly Buf _vbo;
   private readonly Buf _ibo;
+  private readonly List<(Vec3, Vec3)> _grass = new();
 
   public Chunk(Vec2i pos)
   {
     Pos = pos;
     _vbo = new Buf(BufType.ArrayBuffer);
     _ibo = new Buf(BufType.ElementArrayBuffer);
-    _vao = new Vao(_vbo, _ibo, ObjVtx.Attribs);
     Build();
+    _vao = new Vao(_vbo, _ibo, ObjVtx.Attribs);
   }
 
   private static readonly Vec2i[] _normalOffsets =
@@ -85,6 +86,17 @@ public class Chunk
     }
 
     BuildNormals(verts);
+    
+    for (int i = 0; i < Size + 1; i++)
+    for (int j = 0; j < Size + 1; j++)
+    {
+      if (Random.Shared.NextSingle() < 0.01)
+      {
+        _grass.Add((
+          verts[i * (Size + 1) + j].Pos,
+          verts[i * (Size + 1) + j].Norm));
+      } 
+    }
 
     _vbo.Data(BufUsage.StaticDraw, verts);
     _ibo.Data(BufUsage.StaticDraw, Utils.QuadIndices(Size, Size));
@@ -92,13 +104,17 @@ public class Chunk
   
   private static readonly Material _mat = new Material
   {
-    Ambi = new Vec3(0.3f, 0.49f, 0.16f),
-    Diff = new Vec3(0.3f, 0.49f, 0.16f) * 0.2f,
+    Ambi = DreamyHaze.Colors[0] * 0.05f,
+    Diff = DreamyHaze.Colors[7] * 0.3f,
     Spec = Vec3.Zero,
-    Normals = -1
+    Normals = -1,
+    Alpha = -1
   };
 
   private static readonly uint _rand = (uint)Random.Shared.Next();
+
+  private static readonly Lazy<Model> _grassModel =
+    new(() => new Model(@"Res\Models\Grass.obj"));
 
   public void Draw()
   {
@@ -109,6 +125,16 @@ public class Chunk
       .Mat4("u_model", Mat4.Identity)
       .Mat(_mat);
     _vao.Draw(PrimType.Triangles);
+
+    // foreach (var it in _grass)
+    // {
+    //   var model = Mat4.Identity;
+    //   model = model.ChangeAxis(it.Item2, 1);
+    //   model *= Mat4.CreateScale(0.1f);
+    //   model *= Mat4.CreateTranslation(it.Item1);
+    //
+    //   _grassModel.Get.Draw(model);
+    // }
   }
 }
 
