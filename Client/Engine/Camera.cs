@@ -84,7 +84,7 @@ public class Camera
       Pitch = -89.0f;
   }
 
-  public Vec3 Target => Pos + Vec3.UnitY * 1.8f;
+  public Vec3 Target => Pos + Vec3.UnitY * 2.4f;
   public Vec3 Eye => Target - Front * 10;
 
   public Mat4 View => Mat4.LookAt(Eye, Target, _up);

@@ -64,6 +64,9 @@ public class Player : Entity
         (ShaderType.VertexShader, @"Res\Shaders\Cape.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Model.fsh")));
 
+  private static readonly Lazy<Model> _sphere =
+    new(() => new Model(@"Res\Models\Sphere.obj"));
+
   private static readonly Material _mat =
     new Material
     {
@@ -98,11 +101,22 @@ public class Player : Entity
       .Uint("u_id", _rand);
     _cape.Get.Item1.Draw(PrimType.Triangles);
     
+    DrawHand(-1, model);
+    DrawHand(1, model);
+    
     model.Rotate(Vec3.UnitY, 180f);
     model.Scale(Vec3.One * 0.5f);
-    model.Translate(Vec3.UnitY * 1.5f);
+    model.Translate(Vec3.UnitY * 2.0f);
     model.Translate(Vec3.UnitX * -0.311f);
     _hood.Get.Draw(model);
+  }
+
+  private void DrawHand(int mul, Mat4 model)
+  {
+    model.Scale(Vec3.One * 0.2f);
+    model.Translate(Vec3.UnitY * 1.4f);
+    model.Translate(Vec3.UnitZ * -0.8f * mul);
+    _sphere.Get.Draw(model);
   }
 
   public override void Tick()
