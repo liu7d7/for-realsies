@@ -19,9 +19,12 @@ uniform float u_time;
 vec3 get_pos(float l, float s) {
   float arc = radians(mix(u_start, u_end, s / u_slices));
   vec3 pos = vec3(cos(arc), (l - 1) / u_layers, sin(arc));
-  vec3 final_pos = pos * vec3(1., 2., 1.);
-  final_pos.xz *= pow(1 - (pos.y * 0.7), 4) * 1;
-  final_pos.y += pow(1 - pos.y, 4) * 0.1 * 
+  
+  const float hs = 0.75, vs = 1.25;
+  vec3 final_pos = pos * vec3(hs, vs, hs);
+  if (pos.y > 0.7) return final_pos * vec3(0, 1, 0);
+  final_pos.xz *= pow(abs(1 - pos.y - 0.3) * 2, .5) * 1;
+  final_pos.y += pow(abs(1 - pos.y - 0.3) * 2, .5) * 0.075 * 
     (sin(arc * 5 + u_time) + cos(arc * 7 + u_time * 0.5));
   return final_pos;
 }

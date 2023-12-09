@@ -168,14 +168,6 @@ public static class Penki
     _sky.Get.Draw();
     
     GL.Disable(EnableCap.DepthTest);
-    
-    // GL.BlitNamedFramebuffer(
-    //   fbo.Id, 0,
-    //   0, 0, _fboSize.X, _fboSize.Y,
-    //   0, 0, Size.X, Size.Y,
-    //   ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
-    
-    // GL.Viewport(0, 0, Size.X, Size.Y);
 
     _tmpFbo.Get.Bind();
     fbo.BindTex(FramebufferAttachment.ColorAttachment0, 0);

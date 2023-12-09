@@ -17,7 +17,8 @@ public class Shader : IReloadable
     List<int> toDelete = new();
     foreach (var (a, b) in shaders)
     {
-      var text = File.ReadAllText(b);
+      using var stream = File.OpenText(b);
+      var text = stream.ReadToEnd();
       var shader = GL.CreateShader(a);
       toDelete.Add(shader);
 
@@ -108,9 +109,9 @@ public class Shader : IReloadable
   public Shader Mat(Material mat)
   {
     return 
-      Float3("u_ambi", mat.Ambi)
-      .Float3("u_diff", mat.Diff)
-      .Float3("u_spec", mat.Spec)
+      Float3("u_dark", mat.Dark)
+      .Float3("u_light", mat.Light)
+      .Float3("u_light_model", mat.LightModel)
       .Float1("u_shine", mat.Shine)
       .Int("u_has_norm_tex", mat.Normals == -1 ? 0 : 1)
       .Int("u_norm_tex", 0)

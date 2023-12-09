@@ -1,0 +1,8 @@
+﻿{
+  "Icosphere": {
+    "Dark": 1,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0],
+    "Shine": 8
+  }
+}

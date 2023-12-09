@@ -4,15 +4,16 @@ using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenTK.Graphics.OpenGL4;
+using Penki.Client.Game;
 using Penki.Client.GLU;
 
 namespace Penki.Client.Engine;
 
 public class Material
 {
-  public required Vec3 Diff;
-  public required Vec3 Ambi;
-  public required Vec3 Spec;
+  public required Vec3 Dark;
+  public required Vec3 Light;
+  public required Vec3 LightModel;
   public required int Normals;
   public required int Alpha;
   public float Shine = 32;
@@ -213,27 +214,19 @@ public class Model
     foreach (var mat in json.Properties())
     {
       var name = mat.Name;
+
+      var dark = mat.Value["Dark"]?.Value<int>() ??
+                 throw new Exception("Expected Dark.");
       
-      var diff =
-        mat.Value["Diff"]
+      var light = mat.Value["Light"]?.Value<int>() ??
+                  throw new Exception("Expected Light.");
+      
+      var lightModel =
+        mat.Value["LightModel"]
           ?.ToArray()
           .Select(it => it.Value<float>())
           .ToArray()
-          .ToVec3() ?? throw new InvalidDataException("Expected Diff.");
-      
-      var ambi =
-        mat.Value["Ambi"]
-          ?.ToArray()
-          .Select(it => it.Value<float>())
-          .ToArray()
-          .ToVec3() ?? throw new InvalidDataException("Expected Ambi.");
-      
-      var spec =
-        mat.Value["Spec"]
-          ?.ToArray()
-          .Select(it => it.Value<float>())
-          .ToArray()
-          .ToVec3() ?? throw new InvalidDataException("Expected Spec.");
+          .ToVec3() ?? throw new InvalidDataException("Expected LightModel.");
 
       var norm = 
         mat.Value["Norm"]
@@ -262,9 +255,9 @@ public class Model
         name, 
         new Material
         {
-          Diff = diff,
-          Ambi = ambi,
-          Spec = spec,
+          Dark = DreamyHaze.Colors[dark],
+          Light = DreamyHaze.Colors[light],
+          LightModel = lightModel,
           Normals = norm ?? -1,
           Shine = shine,
           Alpha = alpha ?? -1

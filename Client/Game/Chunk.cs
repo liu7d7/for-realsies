@@ -104,9 +104,9 @@ public class Chunk
   
   private static readonly Material _mat = new Material
   {
-    Ambi = DreamyHaze.Colors[0] * 0.05f,
-    Diff = DreamyHaze.Colors[7] * 0.3f,
-    Spec = Vec3.Zero,
+    Light = DreamyHaze.Colors[6],
+    Dark = DreamyHaze.Colors[0],
+    LightModel = (0.0f, 0.85f, 0.0f),
     Normals = -1,
     Alpha = -1
   };
