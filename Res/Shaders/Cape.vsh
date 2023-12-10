@@ -24,8 +24,8 @@ vec3 get_pos(float l, float s) {
   vec3 final_pos = pos * vec3(hs, vs, hs);
   if (pos.y > 0.7) return final_pos * vec3(0, 1, 0);
   final_pos.xz *= pow(abs(1 - pos.y - 0.3) * 2, .5) * 1;
-  final_pos.y += pow(abs(1 - pos.y - 0.3) * 2, .5) * 0.075 * 
-    (sin(arc * 5 + u_time) + cos(arc * 7 + u_time * 0.5));
+  final_pos.y += pow(abs(1 - pos.y - 0.3) * 2, .5) * 0.08 * 
+    (sin(arc * 5 + u_time * 1.33) + cos(arc * 7 + u_time * 0.66));
   return final_pos;
 }
 
@@ -40,31 +40,33 @@ vec3 get_normal() {
   // 3*  4*  *
   
   vec3 a = get_pos(layer, slice);
+  vec3 b = get_pos(layer - 1, slice);
+  vec3 c = get_pos(layer, slice - 1);
   
-  vec3 b[] = {
-    get_pos(layer - 1, slice), 
-    get_pos(layer - 1, slice), 
-    get_pos(layer - 1, slice + 1), 
-    get_pos(layer, slice - 1), 
-    get_pos(layer + 1, slice - 1), 
-    get_pos(layer + 1, slice)
-  };
+//   vec3 b[] = {
+//     get_pos(layer - 1, slice), 
+//     get_pos(layer - 1, slice), 
+//     get_pos(layer - 1, slice + 1), 
+//     get_pos(layer, slice - 1), 
+//     get_pos(layer + 1, slice - 1), 
+//     get_pos(layer + 1, slice)
+//   };
   
-  vec3 c[] = {
-    get_pos(layer, slice - 1),
-    get_pos(layer - 1, slice + 1),
-    get_pos(layer, slice + 1),
-    get_pos(layer + 1, slice - 1),
-    get_pos(layer + 1, slice),
-    get_pos(layer, slice + 1)
-  };
+//   vec3 c[] = {
+//     get_pos(layer, slice - 1),
+//     get_pos(layer - 1, slice + 1),
+//     get_pos(layer, slice + 1),
+//     get_pos(layer + 1, slice - 1),
+//     get_pos(layer + 1, slice),
+//     get_pos(layer, slice + 1)
+//   };
  
-  vec3 accum = vec3(0.);
-  for (int i = 0; i < 6; i++) {
-    accum += cross(b[i] - a, c[i] - a); 
-  }
+//   vec3 accum = vec3(0.);
+//   for (int i = 0; i < 6; i++) {
+//     accum += cross(b[i] - a, c[i] - a); 
+//   }
   
-  return normalize(accum);
+  return normalize(cross(b - a, c - a));
 }
 
 void main() {

@@ -1,6 +1,5 @@
 ﻿using OpenTK.Mathematics;
 using Penki.Client.Engine;
-using Penki.Game;
 
 namespace Penki.Client.Game;
 
@@ -25,8 +24,8 @@ public class World
   private void GenerateChunks()
   {
     var chunkPos = Cam.Pos.ToChunk();
-    for (int i = -RenderDistance; i <= RenderDistance; i++)
-    for (int j = -RenderDistance; j <= RenderDistance; j++)
+    for (int i = -RenderDistance * 3; i <= RenderDistance * 3; i++)
+    for (int j = -RenderDistance * 3; j <= RenderDistance * 3; j++)
     {
       var final = chunkPos + new Vec2i(i, j);
       if (!_chunks.ContainsKey(final))
@@ -48,17 +47,21 @@ public class World
       _chunks[final].Draw();
     }
 
-    foreach (var it in _entities.Where(it => !(it.Pos.Dist(Cam.Pos) > 100)))
+    foreach (var it in _entities)
     {
+      if (it.Pos.Dist(Cam.Pos) > 100) continue;
+      
       it.Draw(Mat4.Identity);
     }
   }
 
-  public void Tick()
+  public void Tick(float dt)
   {
-    foreach (var it in _entities.Where(it => !(it.Pos.Dist(Cam.Pos) > 100)))
+    foreach (var it in _entities)
     {
-      it.Tick();
+      if (it.Pos.Dist(Cam.Pos) > 100) continue;
+      
+      it.Tick(dt);
     }
   }
 }

@@ -1,4 +1,8 @@
 ﻿using System.Runtime.InteropServices;
+using BepuPhysics;
+using BepuPhysics.Constraints;
+using BepuUtilities;
+using BepuUtilities.Memory;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -7,7 +11,6 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Penki.Client.Engine;
 using Penki.Client.Game;
 using Penki.Client.GLU;
-using Penki.Game;
 
 namespace Penki.Client;
 
@@ -15,7 +18,10 @@ public static class Penki
 {
   private static readonly GameWindow _win =
     new GameWindow(
-      GWS.Default,
+      new GWS
+      {
+        UpdateFrequency = 60
+      },
       new NWS
       {
         Size = new Vector2i(1920, 1200),
@@ -27,7 +33,8 @@ public static class Penki
       });
 
   public static Vector2i Size => _win.ClientSize;
-  public static Vector2 SizeF => new(_win.ClientSize.X, _win.ClientSize.Y);
+  public static Vec2 SizeF => new(_win.ClientSize.X, _win.ClientSize.Y);
+  public static bool Wireframe = false;
 
   public static CursorState Cursor
   {
@@ -35,21 +42,21 @@ public static class Penki
     private set => _win.CursorState = value;
   }
   public static bool InFocus => _win.IsFocused;
-  public static Vector2 Mouse => _win.MousePosition;
+  public static Vec2 Mouse => _win.MousePosition;
 
-  private static readonly Vec2i _fboSize = Size / 4;
+  private static Vec2i FboSize => Size / 4;
 
   private static readonly Lazy<Fbo> _fbo =
     new(() =>
       new Fbo(
-        (FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(_fboSize)),
-        (FramebufferAttachment.ColorAttachment1, TexConf.R32(_fboSize)),
-        (FramebufferAttachment.ColorAttachment2, TexConf.Rgba32(_fboSize)),
-        (FramebufferAttachment.DepthAttachment, TexConf.Depth24(_fboSize))));
+        (FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(FboSize)),
+        (FramebufferAttachment.ColorAttachment1, TexConf.R32(FboSize)),
+        (FramebufferAttachment.ColorAttachment2, TexConf.Rgba32(FboSize)),
+        (FramebufferAttachment.DepthAttachment, TexConf.Depth24(FboSize))));
   
   private static readonly Lazy<Fbo> _tmpFbo =
     new(() =>
-      new Fbo((FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(_fboSize))));
+      new Fbo((FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(FboSize))));
 
   private static readonly Lazy<Shader> _outline =
     new(() =>
@@ -76,10 +83,15 @@ public static class Penki
 
   private static readonly DebugProc _logDelegate = Log;
 
-  public static Shader Defaults(this Shader sh, bool translation = true)
+  private static readonly RollingAverage _fps = new(300);
+
+  private static Mat4 Ortho =>
+    Mat4.CreateOrthographicOffCenter(0, Size.X, Size.Y, 0, -1, 1);
+
+  public static Shader Defaults(this Shader sh, bool translation = true, bool threeD = true)
   {
     sh
-      .Mat4("u_proj", Cam.Proj)
+      .Mat4("u_proj", threeD ? Cam.Proj : Ortho)
       .Float3("u_eye", Cam.Eye)
       .Float1("u_time", (float) GLFW.GetTime())
       .Float2("u_one_texel", Vec2.One / SizeF)
@@ -114,6 +126,8 @@ public static class Penki
 
   public static void Run()
   {
+    Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+    
     _win.RenderFrame += Draw;
     _win.UpdateFrame += Tick;
     _win.Load += Init;
@@ -145,7 +159,7 @@ public static class Penki
 
   private static void Draw(FrameEventArgs args)
   {
-    GL.Viewport(0, 0, _fboSize.X, _fboSize.Y);
+    GL.Viewport(0, 0, FboSize.X, FboSize.Y);
     
     var fbo = (Fbo)_fbo;
     fbo.Bind()
@@ -160,6 +174,7 @@ public static class Penki
     
     GL.Enable(EnableCap.DepthTest);
     GL.DepthFunc(DepthFunction.Less);
+    GL.Enable(EnableCap.CullFace);
     
     _world.Draw();
     
@@ -168,6 +183,7 @@ public static class Penki
     _sky.Get.Draw();
     
     GL.Disable(EnableCap.DepthTest);
+    GL.Disable(EnableCap.CullFace);
 
     _tmpFbo.Get.Bind();
     fbo.BindTex(FramebufferAttachment.ColorAttachment0, 0);
@@ -178,11 +194,22 @@ public static class Penki
       .Float3V("u_pal", DreamyHaze.Colors);
     PostProcess.DrawFullscreenQuad();
     
+    Fbo.Bind0();
+    
     GL.BlitNamedFramebuffer(
       _tmpFbo.Get.Id, 0,
-      0, 0, _fboSize.X, _fboSize.Y,
+      0, 0, FboSize.X, FboSize.Y,
       0, 0, Size.X, Size.Y,
       ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
+    
+    GL.Viewport(0, 0, Size.X, Size.Y);
+    GL.Enable(EnableCap.Blend);
+    GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+    _fps.Add(args.Time);
+    Font.Draw($"pos: {_player.Pos.X:.00}, {_player.Pos.Y:.00}, {_player.Pos.Z:.00}", 10, 10, Vec3.One, true);
+    Font.Draw($"cpos: {_player.Pos.ToChunk().X}, {_player.Pos.ToChunk().Y}", 10, 50, Vec3.One, true);
+    Font.Draw($"fps: {1.0 / _fps.Average:.00}", 10, 90, Vec3.One, true);
+    Font.Draw($"mem: {GC.GetTotalMemory(false) / 1024 / 1024}M", 10, 130, Vec3.One, true);
 
     _win.SwapBuffers();
   }
@@ -190,13 +217,13 @@ public static class Penki
   private static void Resize(ResizeEventArgs args)
   {
     ((Fbo)_fbo).Resize(
-      (FboComp.ColorAttachment0, _fboSize),
-      (FboComp.ColorAttachment1, _fboSize),
-      (FboComp.ColorAttachment2, _fboSize),
-      (FboComp.DepthAttachment, _fboSize));
+      (FboComp.ColorAttachment0, FboSize),
+      (FboComp.ColorAttachment1, FboSize),
+      (FboComp.ColorAttachment2, FboSize),
+      (FboComp.DepthAttachment, FboSize));
     
     ((Fbo)_tmpFbo).Resize(
-      (FboComp.ColorAttachment0, _fboSize));
+      (FboComp.ColorAttachment0, FboSize));
 
     GL.Viewport(0, 0, args.Size.X, args.Size.Y);
   }
@@ -204,6 +231,7 @@ public static class Penki
   private static void Tick(FrameEventArgs args)
   {
     Cam.Tick();
+    _world.Tick((float) args.Time);
   }
 
   private static void MouseMove(MouseMoveEventArgs args)
@@ -214,6 +242,7 @@ public static class Penki
   private static void MouseDown(MouseButtonEventArgs args)
   {
     Cursor = CursorState.Grabbed;
+    _player.MouseDown(args);
   }
 
   private static void KeyDown(KeyboardKeyEventArgs args)
@@ -226,7 +255,12 @@ public static class Penki
       case Keys.R when args.Modifiers.HasFlag(KeyModifiers.Control):
         Reloader.Load();
         break;
+      case Keys.I:
+        Wireframe = !Wireframe;
+        break;
     }
+    
+    _player.KeyDown(args);
   }
 
 }

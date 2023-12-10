@@ -34,11 +34,20 @@ public class Model
   public readonly List<ObjObj> Objs = new();
   private readonly List<Tex> _texes;
 
-  public static readonly Lazy<Shader> Shader =
+  private static readonly Lazy<Shader> _wireframe =
     new(() =>
       new Shader(
-        (ShaderType.VertexShader, "Res/Shaders/Model.vsh"),
-        (ShaderType.FragmentShader, "Res/Shaders/Model.fsh")));
+        (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
+        (ShaderType.GeometryShader, @"Res\Shaders\Wireframe.gsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Lines.fsh")));
+
+  private static readonly Lazy<Shader> _real =
+    new(() =>
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Model.fsh")));
+
+  public static Lazy<Shader> Shader => Penki.Wireframe ? _wireframe : _real;
 
   public Model(string path)
   {

@@ -1,7 +1,8 @@
 ﻿global using GWS = OpenTK.Windowing.Desktop.GameWindowSettings;
 global using NWS = OpenTK.Windowing.Desktop.NativeWindowSettings;
 global using FboComp = OpenTK.Graphics.OpenGL4.FramebufferAttachment;
-global using PixIntFmt = OpenTK.Graphics.OpenGL4.SizedInternalFormat;
+global using SzIntFmt = OpenTK.Graphics.OpenGL4.SizedInternalFormat;
+global using PixIntFmt = OpenTK.Graphics.OpenGL4.PixelInternalFormat;
 global using PixFmt = OpenTK.Graphics.OpenGL4.PixelFormat;
 global using PixType = OpenTK.Graphics.OpenGL4.PixelType;
 global using TexType = OpenTK.Graphics.OpenGL4.TextureTarget;
@@ -99,7 +100,7 @@ public class Lazy<T>
 public static class Extensions
 {
   public delegate void Consumer<in T>(T me);
-  
+
   public static IEnumerable<(T, int)> Indexed<T>(this IEnumerable<T> orig)
   {
     return orig.Select((it, i) => (it, i));
@@ -130,22 +131,33 @@ public static class Extensions
   {
     return MathHelper.DegreesToRadians(deg);
   }
-  
+
   public static float Deg(this float rad)
   {
     return MathHelper.RadiansToDegrees(rad);
   }
-  
+
+  public static float AngleLerp(this float start, float end, float delta)
+  {
+    float shortestAngle = ((end - start) % 360 + 540) % 360 - 180;
+    return start + shortestAngle * delta;
+  }
+
   public static float Cos(this float rad)
   {
     return MathF.Cos(rad);
   }
-  
+
   public static float Sin(this float rad)
   {
     return MathF.Sin(rad);
   }
-  
+
+  public static Vec3 NormalizedSafe(this Vec3 vec)
+  {
+    return vec.LengthSquared > 0.00001 ? vec.Normalized() : vec;
+  }
+
   public static float Lerp(this float start, float end, float delta)
   {
     return MathHelper.Lerp(start, end, delta);
@@ -161,7 +173,7 @@ public static class Extensions
   {
     return (lhs - rhs).Length;
   }
-  
+
   public static float Dist2(this Vec3 lhs, Vec3 rhs)
   {
     return (lhs - rhs).LengthSquared;
@@ -174,7 +186,7 @@ public static class Extensions
     mat *= Mat4.CreateScale(scale);
     mat *= Mat4.CreateTranslation(trans);
   }
-  
+
   public static void Rotate(this ref Mat4 mat, Vec3 axis, float deg)
   {
     var trans = mat.ExtractTranslation();
@@ -186,7 +198,8 @@ public static class Extensions
   public static void Translate(this ref Mat4 mat, Vec3 trans)
   {
     var (x, y, z) = trans;
-    mat *= Mat4.CreateTranslation(Vec4.Transform(new Vec4(x, y, z, 1.0f), mat.ExtractRotation()).Xyz);
+    mat *= Mat4.CreateTranslation(Vec4
+      .Transform(new Vec4(x, y, z, 1.0f), mat.ExtractRotation()).Xyz);
   }
 
   public static Mat4 ChangeAxis(this Mat4 mat, Vec3 axis, int axNum)
@@ -206,24 +219,45 @@ public static class Extensions
     var changed = axNum switch
     {
       0 => new Mat4(
-        t.X, t.Y, t.Z, 0, 
-        f.X, f.Y, f.Z, 0, 
-        s.X, s.Y, s.Z, 0, 
+        t.X, t.Y, t.Z, 0,
+        f.X, f.Y, f.Z, 0,
+        s.X, s.Y, s.Z, 0,
         x, y, z, 1),
       1 => new Mat4(
-        s.X, t.Y, s.Z, 0, 
-        t.X, t.Y, t.Z, 0, 
-        f.X, f.Y, f.Z, 0, 
+        s.X, t.Y, s.Z, 0,
+        t.X, t.Y, t.Z, 0,
+        f.X, f.Y, f.Z, 0,
         x, y, z, 1),
       2 => new Mat4(
-        f.X, f.Y, f.Z, 0, 
-        s.X, s.Y, s.Z, 0, 
-        t.X, t.Y, t.Z, 0, 
+        f.X, f.Y, f.Z, 0,
+        s.X, s.Y, s.Z, 0,
+        t.X, t.Y, t.Z, 0,
         x, y, z, 1),
       _ => throw new Exception("axis out of bounds!")
     };
-    
+
     return changed;
   }
+}
 
+public class RollingAverage
+{
+  private readonly int _size;
+  private readonly Queue<double> _values = new();
+  private double _sum;
+
+  public RollingAverage(int size)
+  {
+    _size = size;
+  }
+
+  public double Average => _sum / _values.Count;
+
+  public void Add(double value)
+  {
+    _sum += value;
+    _values.Enqueue(value);
+    if (_values.Count <= _size) return;
+    _sum -= _values.Dequeue();
+  }
 }

@@ -25,11 +25,31 @@ public class Buf
     return this;
   }
   
+  public Buf Data<T>(BufUsage usage, Span<T> data, int length)
+    where T : struct
+  {
+    Size = length;
+    var bits = length * Marshal.SizeOf<T>();
+    GL.NamedBufferData(Id, bits, ref data[0], usage);
+
+    return this;
+  }
+  
   public Buf Data<T>(BufUsage usage, T[] data)
     where T : struct
   {
     Size = data.Length;
     var bytes = data.Length * Marshal.SizeOf<T>();
+    GL.NamedBufferData(Id, bytes, ref data[0], usage);
+
+    return this;
+  }
+  
+  public Buf Data<T>(BufUsage usage, T[] data, int length)
+    where T : struct
+  {
+    Size = length;
+    var bytes = length * Marshal.SizeOf<T>();
     GL.NamedBufferData(Id, bytes, ref data[0], usage);
 
     return this;

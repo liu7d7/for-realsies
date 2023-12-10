@@ -1,23 +1,26 @@
-﻿namespace Penki.Client.Engine;
+﻿using System.Buffers;
+
+namespace Penki.Client.Engine;
 
 public static class Utils
 {
-  public static Span<int> QuadIndices(int width, int height)
+  public static int[] QuadIndices(int width, int height)
   {
-    var indices = new List<int>();
+    var indices = ArrayPool<int>.Shared.Rent(width * height * 6);
     
     for (int i = 0; i < height; i++)
     for (int j = 0; j < width; j++)
     {
-      indices.Add((i + 1) * (width + 1) + j + 1);
-      indices.Add((i + 1) * (width + 1) + j);
-      indices.Add(i * (width + 1) + j);
-      indices.Add(i * (width + 1) + j);
-      indices.Add(i * (width + 1) + j + 1);
-      indices.Add((i + 1) * (width + 1) + j + 1);
+      var baseIdx = (i * width + j) * 6;
+      indices[baseIdx + 0] = (i + 1) * (width + 1) + j + 1;
+      indices[baseIdx + 1] = (i + 1) * (width + 1) + j;
+      indices[baseIdx + 2] = i * (width + 1) + j;
+      indices[baseIdx + 3] = i * (width + 1) + j;
+      indices[baseIdx + 4] = i * (width + 1) + j + 1;
+      indices[baseIdx + 5] = (i + 1) * (width + 1) + j + 1;
     }
 
-    return indices.AsSpan();
+    return indices;
   }
   
   public static Span<int> QuadIndicesAdj(int width, int height)

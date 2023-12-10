@@ -1,4 +1,5 @@
-﻿using Penki.Client.Engine;
+﻿using System.Buffers;
+using Penki.Client.Engine;
 using Penki.Client.GLU;
 using SimplexNoise;
 
@@ -68,16 +69,46 @@ public class Chunk
     }
   }
 
+  public static float HeightAtBilerp(Vec3 pos)
+  {
+    int x1 = (int)MathF.Floor(pos.X);
+    int z1 = (int)MathF.Floor(pos.Z);
+
+    float v00 = HeightAt(new Vec3(x1, 0, z1));
+    float v10 = HeightAt(new Vec3(x1 + 1, 0, z1));
+    float v11 = HeightAt(new Vec3(x1 + 1, 0, z1 + 1));
+    float v01 = HeightAt(new Vec3(x1, 0, z1 + 1));
+    float x = pos.X - x1;
+    float z = pos.Z - z1;
+    
+    return (1 - x) * (1 - z) * v00 + x * (1 - z) * v10 + (1 - x) * z * v01 + x * z * v11;
+  }
+
+  private static float BumpinessAt(Vec3 pos)
+  {
+    return -(Noise.CalcPixel2D((int)pos.X, (int)pos.Z, 0.005f) / 255.0f - 0.5f) * 2 * 8f + 4f;
+  }
+
+  private static float DivAt(Vec3 pos)
+  {
+    return (Noise.CalcPixel2D((int)pos.X, (int)pos.Z, 0.001f) / 255.0f - 0.5f) * 2 * 0.01f + 0.02f;
+  }
+
+  public static float HeightAt(Vec3 pos)
+  {
+    return Noise.CalcPixel2D((int)pos.X, (int)pos.Z, DivAt(pos)) / 255.0f * BumpinessAt(pos);
+  }
+
   private Vec3 GetPos(int offX, int offZ)
   {
     var basePos = new Vec3(Pos.X * Size + offX, 0, Pos.Y * Size + offZ);
-    var height = Noise.CalcPixel2D((int)basePos.X, (int)basePos.Z, 0.03f) / 255.0f * 3;
-    return basePos + new Vec3(0, height, 0);
+    return basePos + new Vec3(0, HeightAt(basePos), 0);
   }
 
   private void Build()
   {
-    var verts = new ObjVtx[(Size + 1) * (Size + 1)];
+    var size = (Size + 1) * (Size + 1);
+    var verts = ArrayPool<ObjVtx>.Shared.Rent(size);
     for (int i = 0; i < Size + 1; i++)
     for (int j = 0; j < Size + 1; j++)
     {
@@ -98,15 +129,19 @@ public class Chunk
       } 
     }
 
-    _vbo.Data(BufUsage.StaticDraw, verts);
-    _ibo.Data(BufUsage.StaticDraw, Utils.QuadIndices(Size, Size));
+    _vbo.Data(BufUsage.StaticDraw, verts, size);
+    var indices = Utils.QuadIndices(Size, Size);
+    _ibo.Data(BufUsage.StaticDraw, indices, Size * Size * 6);
+    
+    ArrayPool<ObjVtx>.Shared.Return(verts);
+    ArrayPool<int>.Shared.Return(indices);
   }
   
   private static readonly Material _mat = new Material
   {
-    Light = DreamyHaze.Colors[6],
+    Light = DreamyHaze.Colors[7],
     Dark = DreamyHaze.Colors[0],
-    LightModel = (0.0f, 0.85f, 0.0f),
+    LightModel = (0.0f, 0.775f, 0.0f),
     Normals = -1,
     Alpha = -1
   };

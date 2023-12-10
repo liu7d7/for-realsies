@@ -7,6 +7,7 @@ namespace Penki.Client.GLU;
 using FboAttachment = Triple<FboComp, TexConf, int>;
 
 public record struct TexConf(
+  SzIntFmt SzIntFmt,
   PixIntFmt IntFmt,
   PixFmt Fmt,
   PixType Type,
@@ -18,6 +19,7 @@ public record struct TexConf(
   public static TexConf Depth24(Vec2i size)
   {
     return new TexConf(
+      SzIntFmt.DepthComponent24,
       PixIntFmt.DepthComponent24,
       PixFmt.DepthComponent,
       PixType.Float,
@@ -31,6 +33,7 @@ public record struct TexConf(
   public static TexConf Rgba32(Vec2i size)
   {
     return new TexConf(
+      SzIntFmt.Rgba32f,
       PixIntFmt.Rgba32f,
       PixFmt.Rgba,
       PixType.Float,
@@ -44,9 +47,24 @@ public record struct TexConf(
   public static TexConf R32(Vec2i size)
   {
     return new TexConf(
+      SzIntFmt.R32ui,
       PixIntFmt.R32ui,
       PixFmt.RedInteger,
       PixType.UnsignedInt,
+      MinFilter.Nearest,
+      MagFilter.Nearest,
+      size.X,
+      size.Y
+    );
+  }
+  
+  public static TexConf R8(Vec2i size)
+  {
+    return new TexConf(
+      SzIntFmt.R8,
+      PixIntFmt.R8,
+      PixFmt.Red,
+      PixType.Float,
       MinFilter.Nearest,
       MagFilter.Nearest,
       size.X,
@@ -79,6 +97,7 @@ public class Fbo
 
   public Fbo Resize(params (FramebufferAttachment, Vector2i)[] sizes)
   {
+    Bind();
     foreach (var (a, b) in sizes)
     {
       var it = 
@@ -154,7 +173,7 @@ public class Fbo
     GL.TextureParameter(tex, TexParam.TextureWrapT, (int)All.MirroredRepeat);
     GL.TextureParameter(tex, TexParam.TextureMinFilter, (int)it.Min);
     GL.TextureParameter(tex, TexParam.TextureMinFilter, (int)it.Mag);
-    GL.TextureStorage2D(tex, 1, it.IntFmt, it.Width, it.Height);
+    GL.TextureStorage2D(tex, 1, it.SzIntFmt, it.Width, it.Height);
     return tex;
   }
 }

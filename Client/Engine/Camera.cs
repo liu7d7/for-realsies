@@ -7,9 +7,9 @@ public class Camera
 {
   public const float Fov = 45 * MathF.PI / 180f;
   public const float Near = 0.1f;
-  private readonly Vec3 _worldUp = Vec3.UnitY;
+  public readonly Vec3 WorldUp = Vec3.UnitY;
   public Vec3 Front;
-  private Vec3 _right;
+  public Vec3 Right;
   private Vec3 _up;
   private float _lastX;
   private float _lastY;
@@ -26,21 +26,8 @@ public class Camera
         MathF.Cos(Pitch.Rad()) * MathF.Cos(Yaw.Rad()),
         MathF.Sin(Pitch.Rad()),
         MathF.Cos(Pitch.Rad()) * MathF.Sin(Yaw.Rad())).Normalized();
-    _right = Vec3.Cross(Front, _worldUp).Normalized();
-    _up = Vec3.Cross(_right, Front).Normalized();
-
-    var dir = Vec3.Zero;
-    if (Penki.IsDown(Keys.W)) dir.Z++;
-    if (Penki.IsDown(Keys.S)) dir.Z--;
-    if (Penki.IsDown(Keys.A)) dir.X--;
-    if (Penki.IsDown(Keys.D)) dir.X++;
-    if (Penki.IsDown(Keys.Space)) dir.Y++;
-    if (Penki.IsDown(Keys.LeftShift)) dir.Y--;
-    if (dir.Length > 0.0001) dir.Normalize();
-
-    Pos += dir.X * _right * 0.01f;
-    Pos += dir.Z * (Front * new Vec3(1, 0, 1)).Normalized() * 0.01f;
-    Pos += dir.Y * _worldUp * 0.01f;
+    Right = Vec3.Cross(Front, WorldUp).Normalized();
+    _up = Vec3.Cross(Right, Front).Normalized();
   }
 
   private CursorState _lastCursorState = CursorState.Grabbed;
