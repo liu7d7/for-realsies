@@ -25,7 +25,7 @@ vec3 get_pos(float l, float s) {
   if (pos.y > 0.7) return final_pos * vec3(0, 1, 0);
   final_pos.xz *= pow(abs(1 - pos.y - 0.3) * 2, .5) * 1;
   final_pos.y += pow(abs(1 - pos.y - 0.3) * 2, .5) * 0.08 * 
-    (sin(arc * 5 + u_time * 1.33) + cos(arc * 7 + u_time * 0.66));
+    (sin(arc * 3 + u_time * 1.33) + cos(arc * 5 + u_time * 0.66));
   return final_pos;
 }
 

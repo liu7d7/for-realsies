@@ -45,16 +45,6 @@ public class Buf
     return this;
   }
   
-  public Buf Data<T>(BufUsage usage, T[] data, int length)
-    where T : struct
-  {
-    Size = length;
-    var bytes = length * Marshal.SizeOf<T>();
-    GL.NamedBufferData(Id, bytes, ref data[0], usage);
-
-    return this;
-  }
-  
   public Buf Data<T>(BufUsage usage, int size, ref T data)
     where T : struct
   {

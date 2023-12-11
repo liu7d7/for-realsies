@@ -1,7 +1,6 @@
-﻿using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Runtime.InteropServices;
-using Newtonsoft.Json;
+using BepuPhysics.Collidables;
 using Newtonsoft.Json.Linq;
 using OpenTK.Graphics.OpenGL4;
 using Penki.Client.Game;
@@ -29,26 +28,45 @@ public class ObjObj
   public required uint Rand;
 }
 
+public interface IModel
+{
+  public void Draw()
+  {
+    Draw(Mat4.Identity);
+  }
+
+  public void Draw(Mat4 model);
+}
+
+public static class Shapes
+{
+  public static Memo<TypedIndex, float> Sphere =
+    new(it => Penki.Simulation.Shapes.Add(new Sphere(it)));
+}
+
 public class Model
 {
-  public readonly List<ObjObj> Objs = new();
-  private readonly List<Tex> _texes;
-
+  public static readonly Lazy<Model> Sphere =
+    new(() => new Model(@"Res\Models\Sphere.obj"));
+  
   private static readonly Lazy<Shader> _wireframe =
     new(() =>
       new Shader(
         (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
         (ShaderType.GeometryShader, @"Res\Shaders\Wireframe.gsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Lines.fsh")));
-
+  
   private static readonly Lazy<Shader> _real =
     new(() =>
       new Shader(
         (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Model.fsh")));
-
+  
   public static Lazy<Shader> Shader => Penki.Wireframe ? _wireframe : _real;
-
+  
+  public readonly List<ObjObj> Objs = new();
+  private readonly List<Tex> _texes;
+  
   public Model(string path)
   {
     var txt = File.ReadAllLines(path);
@@ -158,6 +176,7 @@ public class Model
     }
     
     NewObj();
+    
     return;
 
     void NewObj()
@@ -183,11 +202,6 @@ public class Model
         Rand = (uint)Random.Shared.Next()
       });
     }
-  }
-  
-  public void Draw()
-  {
-    Draw(Mat4.Identity);
   }
 
   public void Draw(Mat4 model)
@@ -289,17 +303,12 @@ public class Model
 // }
 
 [StructLayout(LayoutKind.Sequential, Pack=4)]
-public struct ObjVtx
+public struct ObjVtx(Vec3 pos, Vec2 uv, Vec3 norm) : IVertex
 {
-  public Vec3 Pos;
-  public Vec2 Uv;
-  public Vec3 Norm;
+  public Vec3 Pos = pos;
+  public Vec2 Uv = uv;
+  public Vec3 Norm = norm;
 
-  public ObjVtx(Vec3 pos, Vec2 uv, Vec3 norm)
-  {
-    (Pos, Uv, Norm) = (pos, uv, norm);
-  }
-  
   public static ObjVtx FromObj(ObjVtx vtx)
   {
     return vtx;
@@ -310,4 +319,9 @@ public struct ObjVtx
     Vao.Attrib.Float2,
     Vao.Attrib.Float3
   };
+
+  public Vec3 GetPos()
+  {
+    return Pos;
+  }
 }

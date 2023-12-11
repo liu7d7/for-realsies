@@ -1,10 +1,13 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
+using BepuPhysics.Collidables;
+using BepuUtilities.Memory;
 
 namespace Penki.Client.Engine;
 
 public static class Utils
 {
-  public static int[] QuadIndices(int width, int height)
+  public static (int[], int) QuadIndices(int width, int height)
   {
     var indices = ArrayPool<int>.Shared.Rent(width * height * 6);
     
@@ -20,7 +23,7 @@ public static class Utils
       indices[baseIdx + 5] = (i + 1) * (width + 1) + j + 1;
     }
 
-    return indices;
+    return (indices, width * height * 6);
   }
   
   public static Span<int> QuadIndicesAdj(int width, int height)
@@ -61,4 +64,38 @@ public static class Utils
 
     return indices.AsSpan();
   }
+
+  public static Buffer<Triangle> Tris<T>(Span<T> verts, int length, BufferPool pool)
+    where T : struct, IVertex
+  {
+    Debug.Assert(length % 3 == 0);
+
+    pool.Take<Triangle>(length / 3, out var tris);
+    for (int i = 0; i < length; i += 3)
+    {
+      tris[i / 3] = new Triangle(
+        verts[i + 2].GetPos().ToNumerics(),
+        verts[i + 1].GetPos().ToNumerics(),
+        verts[i + 0].GetPos().ToNumerics());
+    }
+
+    return tris;
+  } 
+  
+  public static Buffer<Triangle> Tris<T>(Span<T> verts, Span<int> indices, int length, BufferPool pool)
+    where T : struct, IVertex
+  {
+    Debug.Assert(length % 3 == 0);
+
+    pool.Take<Triangle>(length / 3, out var tris);
+    for (int i = 0; i < length; i += 3)
+    {
+      tris[i / 3] = new Triangle(
+        verts[indices[i + 2]].GetPos().ToNumerics(),
+        verts[indices[i + 1]].GetPos().ToNumerics(),
+        verts[indices[i + 0]].GetPos().ToNumerics());
+    }
+
+    return tris;
+  } 
 }

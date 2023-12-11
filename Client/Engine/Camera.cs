@@ -1,5 +1,4 @@
 ﻿using OpenTK.Windowing.Common;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Penki.Client.Engine;
 

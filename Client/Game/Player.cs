@@ -1,10 +1,13 @@
 ﻿using System.Runtime.InteropServices;
+using BepuPhysics;
+using BepuPhysics.Collidables;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Penki.Client.Engine;
 using Penki.Client.GLU;
+using Vector3 = System.Numerics.Vector3;
 
 namespace Penki.Client.Game;
 
@@ -43,7 +46,9 @@ public class Player : Entity
       vbo.Data(BufUsage.StaticDraw, verts);
 
       var ibo = new Buf(BufType.ElementArrayBuffer);
-      ibo.Data(BufUsage.StaticDraw, Utils.QuadIndices(Layers, Slices));
+      var (indices, indicesLength) = Utils.QuadIndices(Layers, Slices);
+      ibo.Data(BufUsage.StaticDraw, indices.AsSpan(), indicesLength);
+      indices.Return();
 
       var vao = new Vao(vbo, ibo, CapeVtx.Attribs);
 
@@ -73,11 +78,8 @@ public class Player : Entity
         (ShaderType.GeometryShader, @"Res\Shaders\Wireframe.gsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Lines.fsh")));
 
-  private static Lazy<Shader> _shader =>
+  private static Lazy<Shader> Shader =>
     Penki.Wireframe ? _capeWireframe : _capeShader; 
-
-  private static readonly Lazy<Model> _sphere =
-    new(() => new Model(@"Res\Models\Sphere.obj"));
 
   private static readonly Material _mat =
     new Material
@@ -89,19 +91,31 @@ public class Player : Entity
       Alpha = -1
     };
 
-  public Vec2 HandProgress;
+  private Vec2 _handProgress;
 
   public readonly Camera Cam = new Camera();
 
   public override Vec3 Pos
   {
-    get => Cam.Pos;
-    set => Cam.Pos = value;
+    get => _handle.GetPos() - Vec3.UnitY * 2;
+    set => _handle.SetPos(value + Vec3.UnitY * 2);
   }
 
-  public override Vec3 Vel { get; set; }
+  public override Vec3 Vel
+  {
+    get => _handle.GetVel(); 
+    set => _handle.SetVel(value);
+  }
 
-  private float _bodyYaw = 0.0f;
+  private float _bodyYaw;
+
+  private readonly BodyHandle _handle =
+    Penki.Simulation.Bodies.Add(
+      BodyDescription.CreateDynamic(
+        new Vector3(5, 8, 5),
+        new Capsule(1, 5).ComputeInertia(100f),
+        Penki.Simulation.Shapes.Add(new Capsule(1, 3)),
+        0.01f));
 
   public override void Draw(Mat4 model)
   {
@@ -110,7 +124,7 @@ public class Player : Entity
     model *= Mat4.CreateTranslation(Pos);
     model.Rotate(Vec3.UnitY, 180f - _bodyYaw);
     
-    _shader.Get.Bind()
+    Shader.Get.Bind()
       .Defaults()
       .Mat(_mat)
       .Float1("u_slices", Slices)
@@ -140,7 +154,7 @@ public class Player : Entity
     const float halfSwingLength = swingLength / 2f;
     if (t > swingLength) return 0;
     
-    if (t > halfSwingLength)
+    if (t > halfSwingLength) 
     {
       return (1 - (t - halfSwingLength) / halfSwingLength) * 60f;
     }
@@ -152,13 +166,13 @@ public class Player : Entity
   {
     model.Scale(Vec3.One * 0.2f);
     model.Translate(Vec3.UnitY * 1.4f);
-    model.Rotate(Vector3.UnitY, HandProgressToAngle(HandProgress[hand]) * (hand - 0.5f) * 2);
+    model.Rotate(Vec3.UnitY, HandProgressToAngle(_handProgress[hand]) * (hand - 0.5f) * 2);
     model.Translate(Vec3.UnitZ * -0.7f * (hand - 0.5f) * 2);
-    _sphere.Get.Draw(model);
+    Model.Sphere.Get.Draw(model);
   }
 
-  public bool SwingInProgress => GLFW.GetTime() - HandProgress[0] <= 0.33f ||
-                                 GLFW.GetTime() - HandProgress[1] <= 0.33f; 
+  public bool SwingInProgress => GLFW.GetTime() - _handProgress[0] <= 0.33f ||
+                                 GLFW.GetTime() - _handProgress[1] <= 0.33f; 
 
   public void MouseDown(MouseButtonEventArgs args)
   {
@@ -167,22 +181,19 @@ public class Player : Entity
     switch (args.Button)
     {
       case MouseButton.Left:
-        HandProgress[0] = (float)GLFW.GetTime();
+        _handProgress[0] = (float)GLFW.GetTime();
         break;
       case MouseButton.Right:
-        HandProgress[1] = (float)GLFW.GetTime();
+        _handProgress[1] = (float)GLFW.GetTime();
         break;
     }
   }
 
-  public bool OnGround =>
-    MathHelper.ApproximatelyEqualEpsilon(Pos.Y - 1, Chunk.HeightAtBilerp(Pos), 0.001);
-
   public void KeyDown(KeyboardKeyEventArgs args)
   {
-    if (args is { Key: Keys.Space } && OnGround)
+    if (args is { Key: Keys.Space })
     {
-      Vel = (Vel.X, 0.7f, Vel.Z);
+      Vel = (Vel.X, Vel.Y + 5f, Vel.Z);
     }
   }
 
@@ -197,10 +208,9 @@ public class Player : Entity
 
     Vel += (dir.X * Cam.Right.Normalized() +
             dir.Z * (Cam.Front * new Vec3(1, 0, 1)).Normalized()).NormalizedSafe() * 7.6f * dt;
-    Vel = Vec3.Lerp(Vel, Vec3.Zero, 0.2f) * (1, 0, 1) + Vec3.UnitY * Vel.Y;
-    Vel -= Vec3.UnitY * 1.96f * dt;
+    
+    _handle.SetOrient(Quaternion.Identity);
 
-    Pos += Vel;
-    Pos = (Pos.X, float.Max(Pos.Y - 1, Chunk.HeightAtBilerp(Pos)) + 1, Pos.Z);
+    Cam.Pos = Pos;
   }
 }

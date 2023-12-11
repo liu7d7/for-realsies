@@ -1,13 +1,19 @@
 ﻿using System.Buffers;
+using System.Numerics;
+using BepuPhysics;
+using BepuPhysics.Collidables;
 using Penki.Client.Engine;
 using Penki.Client.GLU;
 using SimplexNoise;
+using Shapes = Penki.Client.Engine.Shapes;
 
 namespace Penki.Client.Game;
 
 public class Chunk
 {
   public const int Size = 32;
+  public const int Quality = 16;
+  public const int Ratio = Size / Quality;
 
   public readonly Vec2i Pos;
   private readonly Vao _vao;
@@ -15,12 +21,12 @@ public class Chunk
   private readonly Buf _ibo;
   private readonly List<(Vec3, Vec3)> _grass = new();
 
-  public Chunk(Vec2i pos)
+  public Chunk(Vec2i pos, World world)
   {
     Pos = pos;
     _vbo = new Buf(BufType.ArrayBuffer);
     _ibo = new Buf(BufType.ElementArrayBuffer);
-    Build();
+    Build(world);
     _vao = new Vao(_vbo, _ibo, ObjVtx.Attribs);
   }
 
@@ -33,8 +39,8 @@ public class Chunk
 
   private void BuildNormals(ObjVtx[] verts)
   {
-    for (int i = -1; i < Size + 1; i++)
-    for (int j = -1; j < Size + 1; j++)
+    for (int i = -1; i < Quality + 1; i++)
+    for (int j = -1; j < Quality + 1; j++)
     {
       var a = GetPos(i, j);
       for (int k = 0; k < _normalOffsets.Length - 1; k++)
@@ -46,18 +52,18 @@ public class Chunk
 
         if (i >= 0 && j >= 0)
         {
-          verts[i * (Size + 1) + j].Norm += Vec3.Cross(b - a, c - a);
+          verts[i * (Quality + 1) + j].Norm += Vec3.Cross(b - a, c - a);
         }
         
-        if (i + off1.X >= 0 && i + off1.X < Size + 1 && j + off1.Y >= 0 && j + off1.Y < Size + 1)
+        if (i + off1.X >= 0 && i + off1.X < Quality + 1 && j + off1.Y >= 0 && j + off1.Y < Quality + 1)
         {
-          verts[(i + off1.X) * (Size + 1) + j + off1.Y].Norm +=
+          verts[(i + off1.X) * (Quality + 1) + j + off1.Y].Norm +=
             Vec3.Cross(b - a, c - a);
         }
         
-        if (i + off2.X >= 0 && i + off2.X < Size + 1 && j + off2.Y >= 0 && j + off2.Y < Size + 1)
+        if (i + off2.X >= 0 && i + off2.X < Quality + 1 && j + off2.Y >= 0 && j + off2.Y < Quality + 1)
         {
-          verts[(i + off2.X) * (Size + 1) + j + off2.Y].Norm +=
+          verts[(i + off2.X) * (Quality + 1) + j + off2.Y].Norm +=
             Vec3.Cross(b - a, c - a);
         }
       }
@@ -101,47 +107,54 @@ public class Chunk
 
   private Vec3 GetPos(int offX, int offZ)
   {
-    var basePos = new Vec3(Pos.X * Size + offX, 0, Pos.Y * Size + offZ);
+    var basePos = new Vec3(Pos.X * Size + offX * Ratio, 0, Pos.Y * Size + offZ * Ratio);
     return basePos + new Vec3(0, HeightAt(basePos), 0);
   }
 
-  private void Build()
+  private void Build(World world)
   {
-    var size = (Size + 1) * (Size + 1);
+    var size = (Quality + 1) * (Quality + 1);
     var verts = ArrayPool<ObjVtx>.Shared.Rent(size);
-    for (int i = 0; i < Size + 1; i++)
-    for (int j = 0; j < Size + 1; j++)
+    for (int i = 0; i < Quality + 1; i++)
+    for (int j = 0; j < Quality + 1; j++)
     {
-      verts[i * (Size + 1) + j] = 
+      verts[i * (Quality + 1) + j] = 
         new ObjVtx { Pos = GetPos(i, j) };
     }
 
     BuildNormals(verts);
     
-    for (int i = 0; i < Size + 1; i++)
-    for (int j = 0; j < Size + 1; j++)
+    for (int i = 0; i < Quality + 1; i++)
+    for (int j = 0; j < Quality + 1; j++)
     {
       if (Random.Shared.NextSingle() < 0.01)
       {
         _grass.Add((
-          verts[i * (Size + 1) + j].Pos,
-          verts[i * (Size + 1) + j].Norm));
-      } 
+          verts[i * (Quality + 1) + j].Pos,
+          verts[i * (Quality + 1) + j].Norm));
+      }
     }
 
-    _vbo.Data(BufUsage.StaticDraw, verts, size);
-    var indices = Utils.QuadIndices(Size, Size);
-    _ibo.Data(BufUsage.StaticDraw, indices, Size * Size * 6);
+    _vbo.Data(BufUsage.StaticDraw, verts.AsSpan(), size);
+    var (indices, indicesLength) = Utils.QuadIndices(Quality, Quality);
+    _ibo.Data(BufUsage.StaticDraw, indices.AsSpan(), indicesLength);
+
+    var tris = Utils.Tris(verts.AsSpan(), indices.AsSpan(), indicesLength, Penki.BufferPool);
+    var mesh = new Mesh(tris, Vector3.One, Penki.BufferPool);
+    var chunkShape = Penki.Simulation.Shapes.Add(mesh);
+    Penki.Simulation.Statics.Add(new StaticDescription(Vector3.Zero, chunkShape));
     
-    ArrayPool<ObjVtx>.Shared.Return(verts);
-    ArrayPool<int>.Shared.Return(indices);
+    world.Add(new Ball(GetPos(Quality / 2, Quality / 2) + (0, 5, 0)));
+    
+    verts.Return();
+    indices.Return();
   }
   
   private static readonly Material _mat = new Material
   {
-    Light = DreamyHaze.Colors[7],
+    Light = DreamyHaze.Colors[6],
     Dark = DreamyHaze.Colors[0],
-    LightModel = (0.0f, 0.775f, 0.0f),
+    LightModel = (0.0f, 0.8f, 0.0f),
     Normals = -1,
     Alpha = -1
   };
@@ -160,16 +173,6 @@ public class Chunk
       .Mat4("u_model", Mat4.Identity)
       .Mat(_mat);
     _vao.Draw(PrimType.Triangles);
-
-    // foreach (var it in _grass)
-    // {
-    //   var model = Mat4.Identity;
-    //   model = model.ChangeAxis(it.Item2, 1);
-    //   model *= Mat4.CreateScale(0.1f);
-    //   model *= Mat4.CreateTranslation(it.Item1);
-    //
-    //   _grassModel.Get.Draw(model);
-    // }
   }
 }
 

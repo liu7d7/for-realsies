@@ -1,6 +1,4 @@
-﻿using OpenTK.Windowing.Desktop;
-
-namespace Penki;
+﻿namespace Penki;
 
 using Client;
 

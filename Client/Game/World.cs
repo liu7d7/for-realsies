@@ -19,18 +19,18 @@ public class World
     _entities.Add(entity);
   }
 
-  private const int RenderDistance = 3;
+  private const int RenderDistance = 6;
 
   private void GenerateChunks()
   {
     var chunkPos = Cam.Pos.ToChunk();
-    for (int i = -RenderDistance * 3; i <= RenderDistance * 3; i++)
-    for (int j = -RenderDistance * 3; j <= RenderDistance * 3; j++)
+    for (int i = -RenderDistance * 2; i <= RenderDistance * 2; i++)
+    for (int j = -RenderDistance * 2; j <= RenderDistance * 2; j++)
     {
       var final = chunkPos + new Vec2i(i, j);
       if (!_chunks.ContainsKey(final))
       {
-        _chunks[final] = new Chunk(final);
+        _chunks[final] = new Chunk(final, this);
       }
     }
   }

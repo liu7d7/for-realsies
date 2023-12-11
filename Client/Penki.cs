@@ -16,6 +16,22 @@ namespace Penki.Client;
 
 public static class Penki
 {
+  public static readonly BufferPool BufferPool = new BufferPool();
+  public static readonly Simulation Simulation = 
+    Simulation.Create(
+      BufferPool, 
+      new DemoNarrowPhaseCallbacks(new SpringSettings(120, 1)), 
+      new DemoPoseIntegratorCallbacks(new System.Numerics.Vector3(0, -10, 0)),
+      new SolveDescription(8, 1));
+  
+  public static readonly ThreadDispatcher ThreadDispatcher = 
+    new ThreadDispatcher(
+      int.Max(
+        1, 
+        Environment.ProcessorCount > 4 ? 
+          Environment.ProcessorCount - 2 : 
+          Environment.ProcessorCount - 1));
+  
   private static readonly GameWindow _win =
     new GameWindow(
       new GWS
@@ -74,9 +90,8 @@ public static class Penki
 
   private static Camera Cam => _player.Cam;
 
-  private static readonly World _world = 
-    new World(_player.Cam)
-      .Also(it => it.Add(_player));
+  private static readonly Lazy<World> _world = 
+    new(() => new World(_player.Cam).Also(it => it.Add(_player)));
 
   private static readonly Lazy<Skybox> _sky = new(() =>
     new Skybox(@"Res\Skyboxes\Anime\Anime"));
@@ -84,6 +99,8 @@ public static class Penki
   private static readonly DebugProc _logDelegate = Log;
 
   private static readonly RollingAverage _fps = new(300);
+
+  private static bool _step = false;
 
   private static Mat4 Ortho =>
     Mat4.CreateOrthographicOffCenter(0, Size.X, Size.Y, 0, -1, 1);
@@ -152,9 +169,6 @@ public static class Penki
     GL.Enable(EnableCap.DebugOutput);
 
     Cursor = CursorState.Grabbed;
-
-    var tex = new Tex(@"Res\Skyboxes\Noon\Noon.Left.png");
-    tex.Bind(TextureUnit.Texture5);
   }
 
   private static void Draw(FrameEventArgs args)
@@ -176,7 +190,7 @@ public static class Penki
     GL.DepthFunc(DepthFunction.Less);
     GL.Enable(EnableCap.CullFace);
     
-    _world.Draw();
+    _world.Get.Draw();
     
     GL.DepthFunc(DepthFunction.Lequal);
     
@@ -228,10 +242,17 @@ public static class Penki
     GL.Viewport(0, 0, args.Size.X, args.Size.Y);
   }
 
+  private const float TimeStep = 1f / 60f;
+  
   private static void Tick(FrameEventArgs args)
   {
+    if (_step)
+    {
+      Simulation.Timestep(TimeStep, ThreadDispatcher);
+    }
+    
     Cam.Tick();
-    _world.Tick((float) args.Time);
+    _world.Get.Tick((float) args.Time);
   }
 
   private static void MouseMove(MouseMoveEventArgs args)
@@ -257,6 +278,9 @@ public static class Penki
         break;
       case Keys.I:
         Wireframe = !Wireframe;
+        break;
+      case Keys.O:
+        _step = !_step;
         break;
     }
     
