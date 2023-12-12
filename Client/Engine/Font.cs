@@ -189,7 +189,7 @@ public static class Font
     }
 
     Tex.Bind(TextureUnit.Texture0);
-    _shader.Get.Bind().Defaults(threeD: false).Int("u_tex", 0);
+    _shader.Get.Bind().Defaults(RenderSource.World, threeD: false).Int("u_tex", 0);
     _vao.Get.Item2.Data(BufUsage.DynamicDraw, verts.AsSpan(), size);
     _vao.Get.Item1.Draw(PrimitiveType.Triangles);
     

@@ -29,13 +29,13 @@ public class Ball : Entity
         pos.ToNumerics(),
         new Sphere(1).ComputeInertia(1),
         Shapes.Sphere[1],
-        0.01f));
+        0.001f));
   }
 
-  public override void Draw(Mat4 model)
+  public override void Draw(Mat4 model, RenderSource source)
   {
     model.Translate(Pos);
-    Model.Sphere.Get.Draw(model);
+    Model.Sphere.Get.Draw(model, source);
   }
 
   public override void Tick(float dt)

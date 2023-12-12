@@ -115,7 +115,7 @@ public class Skybox
     GL.BindTexture(TextureTarget.TextureCubeMap, Id);
     
     _shader.Get.Bind()
-      .Defaults(false)
+      .Defaults(RenderSource.World, false)
       .Int("u_tex_skybox", 0);
 
     var (vao, _) = _mesh.Get;

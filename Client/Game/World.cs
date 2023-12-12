@@ -35,7 +35,7 @@ public class World
     }
   }
 
-  public void Draw()
+  public void Draw(RenderSource source)
   {
     GenerateChunks();
     
@@ -44,14 +44,14 @@ public class World
     for (int j = -RenderDistance; j <= RenderDistance; j++)
     {
       var final = chunkPos + new Vec2i(i, j);
-      _chunks[final].Draw();
+      _chunks[final].Draw(source);
     }
 
     foreach (var it in _entities)
     {
       if (it.Pos.Dist(Cam.Pos) > 100) continue;
       
-      it.Draw(Mat4.Identity);
+      it.Draw(Mat4.Identity, source);
     }
   }
 

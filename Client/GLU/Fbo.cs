@@ -29,6 +29,20 @@ public record struct TexConf(
       size.Y
     );
   }
+  
+  public static TexConf Depth24Linear(Vec2i size)
+  {
+    return new TexConf(
+      SzIntFmt.DepthComponent24,
+      PixIntFmt.DepthComponent24,
+      PixFmt.DepthComponent,
+      PixType.Float,
+      MinFilter.Linear,
+      MagFilter.Linear,
+      size.X,
+      size.Y
+    );
+  }
 
   public static TexConf Rgba32(Vec2i size)
   {

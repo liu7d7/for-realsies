@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using BepuPhysics.Collidables;
 using Newtonsoft.Json.Linq;
@@ -28,16 +29,6 @@ public class ObjObj
   public required uint Rand;
 }
 
-public interface IModel
-{
-  public void Draw()
-  {
-    Draw(Mat4.Identity);
-  }
-
-  public void Draw(Mat4 model);
-}
-
 public static class Shapes
 {
   public static Memo<TypedIndex, float> Sphere =
@@ -61,8 +52,21 @@ public class Model
       new Shader(
         (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Model.fsh")));
+
+  private static readonly Lazy<Shader> _depth =
+    new(() =>
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Depth.fsh")));
   
-  public static Lazy<Shader> Shader => Penki.Wireframe ? _wireframe : _real;
+  public static readonly Memo<Shader, RenderSource> Shader = 
+    new(source => source switch
+    {
+      RenderSource.Lightmap => _depth.Get,
+      RenderSource.World when Penki.Wireframe => _wireframe.Get,
+      RenderSource.World when !Penki.Wireframe => _real.Get,
+      _ => throw new UnreachableException("uh")
+    });
   
   public readonly List<ObjObj> Objs = new();
   private readonly List<Tex> _texes;
@@ -203,8 +207,8 @@ public class Model
       });
     }
   }
-
-  public void Draw(Mat4 model)
+  
+  public void Draw(Mat4 model, RenderSource source)
   {
     foreach (var obj in Objs)
     {
@@ -217,10 +221,9 @@ public class Model
       {
         _texes[obj.Mat.Alpha].Bind(TexUnit.Texture1);
       }
-      
-      var sh = (Shader)Shader;
-      sh.Bind()
-        .Defaults()
+
+      Shader[source].Bind()
+        .Defaults(source)
         .Mat4("u_model", model)
         .Uint("u_id", obj.Rand)
         .Mat(obj.Mat);
@@ -290,17 +293,6 @@ public class Model
     return (mats, texes);
   }
 }
-
-// public class InstancedModel<T> : Model
-//   where T : struct, IVertex
-// {
-//   private readonly List<T> _instanceData;
-//   
-//   public InstancedModel(string path) : base(path)
-//   {
-//     
-//   }
-// }
 
 [StructLayout(LayoutKind.Sequential, Pack=4)]
 public struct ObjVtx(Vec3 pos, Vec2 uv, Vec3 norm) : IVertex

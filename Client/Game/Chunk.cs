@@ -164,11 +164,10 @@ public class Chunk
   private static readonly Lazy<Model> _grassModel =
     new(() => new Model(@"Res\Models\Grass.obj"));
 
-  public void Draw()
+  public void Draw(RenderSource source)
   {
-    var shader = (Shader)Model.Shader;
-    shader.Bind()
-      .Defaults()
+    Model.Shader[source].Bind()
+      .Defaults(source)
       .Uint("u_id", _rand)
       .Mat4("u_model", Mat4.Identity)
       .Mat(_mat);

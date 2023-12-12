@@ -20,9 +20,9 @@ public static class Penki
   public static readonly Simulation Simulation = 
     Simulation.Create(
       BufferPool, 
-      new DemoNarrowPhaseCallbacks(new SpringSettings(120, 1)), 
+      new DemoNarrowPhaseCallbacks(new SpringSettings(80, 0.8f)), 
       new DemoPoseIntegratorCallbacks(new System.Numerics.Vector3(0, -10, 0)),
-      new SolveDescription(8, 1));
+      new SolveDescription(8, 4));
   
   public static readonly ThreadDispatcher ThreadDispatcher = 
     new ThreadDispatcher(
@@ -88,7 +88,7 @@ public static class Penki
 
   private static readonly Player _player = new Player();
 
-  private static Camera Cam => _player.Cam;
+  public static Camera Cam => _player.Cam;
 
   private static readonly Lazy<World> _world = 
     new(() => new World(_player.Cam).Also(it => it.Add(_player)));
@@ -102,21 +102,29 @@ public static class Penki
 
   private static bool _step = false;
 
+  private static readonly Lazy<Lightmap> _lightmap =
+    new(() => new Lightmap(4096, 4096));
+
   private static Mat4 Ortho =>
     Mat4.CreateOrthographicOffCenter(0, Size.X, Size.Y, 0, -1, 1);
 
-  public static Shader Defaults(this Shader sh, bool translation = true, bool threeD = true)
+  public static Shader Defaults(this Shader sh, RenderSource source, bool translation = true, bool threeD = true)
   {
     sh
-      .Mat4("u_proj", threeD ? Cam.Proj : Ortho)
+      .Mat4("u_proj", source == RenderSource.Lightmap ? _lightmap.Get.Proj : threeD ? Cam.Proj : Ortho)
       .Float3("u_eye", Cam.Eye)
       .Float1("u_time", (float) GLFW.GetTime())
       .Float2("u_one_texel", Vec2.One / SizeF)
-      .Float1("u_z_near", Camera.ZNear)
-      .Float1("u_z_far", Camera.ZFar)
+      .Float1("u_z_near", source == RenderSource.Lightmap ? Lightmap.Near : Camera.ZNear)
+      .Float1("u_z_far", source == RenderSource.Lightmap ? Lightmap.Far : Camera.ZFar)
       .Float3("u_front", Cam.Front)
       .Mat4("u_model", Mat4.Identity)
-      .Mat4("u_view", translation ? Cam.View : new Matrix4(new Matrix3(Cam.View)));
+      .Mat4("u_view", source == RenderSource.Lightmap ? Lightmap.View : translation ? Cam.View : new Matrix4(new Matrix3(Cam.View)))
+      .Int("u_light_tex", 7)
+      .Mat4("u_light_proj", _lightmap.Get.Proj)
+      .Mat4("u_light_view", Lightmap.View)
+      .Float1("u_light_z_near", Lightmap.Near)
+      .Float1("u_light_z_far", Lightmap.Far);
 
     return sh;
   }
@@ -173,6 +181,12 @@ public static class Penki
 
   private static void Draw(FrameEventArgs args)
   {
+    GL.Enable(EnableCap.DepthTest);
+    GL.DepthFunc(DepthFunction.Less);
+    GL.Enable(EnableCap.CullFace);
+    
+    _lightmap.Get.Consume(() => _world.Get.Draw(RenderSource.Lightmap));
+    
     GL.Viewport(0, 0, FboSize.X, FboSize.Y);
     
     var fbo = (Fbo)_fbo;
@@ -185,12 +199,9 @@ public static class Penki
       .Clear(ClearBuffer.Color, 1, stackalloc uint[] {0, 0, 0, 0})
       .Clear(ClearBuffer.Color, 2, stackalloc float[] {0, 0, 0, 0})
       .Clear(ClearBuffer.Depth, 0, stackalloc float[] {1});
+    _lightmap.Get.Fbo.BindTex(FramebufferAttachment.DepthAttachment, 7);
     
-    GL.Enable(EnableCap.DepthTest);
-    GL.DepthFunc(DepthFunction.Less);
-    GL.Enable(EnableCap.CullFace);
-    
-    _world.Get.Draw();
+    _world.Get.Draw(RenderSource.World);
     
     GL.DepthFunc(DepthFunction.Lequal);
     
@@ -202,7 +213,6 @@ public static class Penki
     _tmpFbo.Get.Bind();
     fbo.BindTex(FramebufferAttachment.ColorAttachment0, 0);
     _dither.Get.Bind()
-      .Defaults()
       .Int("u_tex_col", 0)
       .Int("u_pal_size", DreamyHaze.Colors.Length)
       .Float3V("u_pal", DreamyHaze.Colors);
@@ -217,6 +227,9 @@ public static class Penki
       ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
     
     GL.Viewport(0, 0, Size.X, Size.Y);
+    _lightmap.Get.Fbo.BindTex(FboComp.DepthAttachment, 0);
+    PostProcess.Blit((Size.X - 400, Size.Y - 400), Size);
+    
     GL.Enable(EnableCap.Blend);
     GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
     _fps.Add(args.Time);
