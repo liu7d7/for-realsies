@@ -27,7 +27,7 @@ float shadow_calc() {
   vec3 proj = (v_light_space_pos.xyz / v_light_space_pos.w) * 0.5 + 0.5;
   float closest_depth = texture(u_light_tex, proj.xy).r;
   float current_depth = proj.z;
-  float bias = max(0.05 * (1.0 - dot(v_norm, light_dir)), 0.005);
+  float bias = max(0.0003 * (1.0 - dot(v_norm, light_dir)), 0.0002);
   float shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
   return shadow;
 }

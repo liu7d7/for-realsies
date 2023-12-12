@@ -100,10 +100,10 @@ public static class Penki
 
   private static readonly RollingAverage _fps = new(300);
 
-  private static bool _step = false;
+  private static bool _step;
 
   private static readonly Lazy<Lightmap> _lightmap =
-    new(() => new Lightmap(4096, 4096));
+    new(() => new Lightmap(8192, 8192));
 
   private static Mat4 Ortho =>
     Mat4.CreateOrthographicOffCenter(0, Size.X, Size.Y, 0, -1, 1);

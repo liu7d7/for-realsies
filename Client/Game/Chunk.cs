@@ -2,10 +2,10 @@
 using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
+using OpenTK.Graphics.OpenGL;
 using Penki.Client.Engine;
 using Penki.Client.GLU;
 using SimplexNoise;
-using Shapes = Penki.Client.Engine.Shapes;
 
 namespace Penki.Client.Game;
 
@@ -145,6 +145,9 @@ public class Chunk
     Penki.Simulation.Statics.Add(new StaticDescription(Vector3.Zero, chunkShape));
     
     world.Add(new Ball(GetPos(Quality / 2, Quality / 2) + (0, 5, 0)));
+    world.Add(new Ball(GetPos(Quality / 2, Quality / 2) + (0, 7, 2)));
+    world.Add(new Cube(GetPos(Quality / 2, Quality / 2) + (0, 10, 0)));
+    world.Add(new Cube(GetPos(Quality / 2, Quality / 2) + (2, 15, 0)));
     
     verts.Return();
     indices.Return();
@@ -171,7 +174,10 @@ public class Chunk
       .Uint("u_id", _rand)
       .Mat4("u_model", Mat4.Identity)
       .Mat(_mat);
+    
+    GL.Disable(EnableCap.CullFace);
     _vao.Draw(PrimType.Triangles);
+    GL.Enable(EnableCap.CullFace);
   }
 }
 

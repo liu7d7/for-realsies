@@ -278,6 +278,14 @@ public static class Extensions
     mat *= Mat4.CreateFromAxisAngle(axis.Normalized(), deg.Rad());
     mat *= Mat4.CreateTranslation(trans);
   }
+  
+  public static void Rotate(this ref Mat4 mat, Quaternion rot)
+  {
+    var trans = mat.ExtractTranslation();
+    mat = mat.ClearTranslation();
+    mat *= Mat4.CreateFromQuaternion(rot);
+    mat *= Mat4.CreateTranslation(trans);
+  }
 
   public static void Translate(this ref Mat4 mat, Vec3 trans)
   {

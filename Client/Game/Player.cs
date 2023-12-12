@@ -132,25 +132,25 @@ public class Player : Entity
 
   public override void Draw(Mat4 model, RenderSource source)
   {
-    _bodyYaw = _bodyYaw.AngleLerp(float.Atan2(Vel.Z, Vel.X).Deg(), 0.2f);
-    
-    model *= Mat4.CreateTranslation(Pos);
-    
-    DrawCape(model, source);
-    
-    DrawHand(0, model, source);
-    DrawHand(1, model, source);
-    
-    model.Rotate(Vec3.UnitY, -_bodyYaw);
-    model.Scale(Vec3.One * 0.5f);
-    model.Translate(Vec3.UnitY * 2.0f);
-    model.Translate(Vec3.UnitX * 0.111f);
-    GL.Disable(EnableCap.CullFace);
-    _hood.Get.Draw(model, source);
-    GL.Enable(EnableCap.CullFace);
+    // _bodyYaw = _bodyYaw.AngleLerp(float.Atan2(Vel.Z, Vel.X).Deg(), 0.2f);
+    //
+    // model *= Mat4.CreateTranslation(Pos);
+    //
+    // DrawDress(model, source);
+    //
+    // DrawHand(0, model, source);
+    // DrawHand(1, model, source);
+    //
+    // model.Rotate(Vec3.UnitY, -_bodyYaw);
+    // model.Scale(Vec3.One * 0.5f);
+    // model.Translate(Vec3.UnitY * 2.0f);
+    // model.Translate(Vec3.UnitX * 0.111f);
+    // GL.Disable(EnableCap.CullFace);
+    // _hood.Get.Draw(model, source);
+    // GL.Enable(EnableCap.CullFace);
   }
 
-  private void DrawCape(Mat4 model, RenderSource source)
+  private void DrawDress(Mat4 model, RenderSource source)
   {
     model.Rotate(Vec3.UnitY, 180f - _bodyYaw);
     _shader[source].Bind()
@@ -170,14 +170,12 @@ public class Player : Entity
     var t = (float)GLFW.GetTime() - prog;
     const float swingLength = 0.33f;
     const float halfSwingLength = swingLength / 2f;
-    if (t > swingLength) return 0;
-    
-    if (t > halfSwingLength) 
+    return t switch
     {
-      return (1 - (t - halfSwingLength) / halfSwingLength) * 60f;
-    }
-
-    return t / halfSwingLength * 60f;
+      > swingLength => 0,
+      > halfSwingLength => (1 - (t - halfSwingLength) / halfSwingLength) * 60f,
+      _ => t / halfSwingLength * 60f
+    };
   }
 
   private void DrawHand(int hand, Mat4 model, RenderSource source)
