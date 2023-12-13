@@ -5,7 +5,7 @@ namespace Penki.Client.GLU;
 
 public class Tex
 {
-  public readonly int Id;
+  public int Id;
   public readonly int Width, Height;
 
   public Tex(string path)

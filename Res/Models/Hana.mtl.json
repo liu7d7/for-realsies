@@ -1,0 +1,87 @@
+﻿{
+  "Bow": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Eyebrows": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Eyes": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Fastener": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Frills": {
+    "Dark": 1,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Hair": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "InnerCorset": {
+    "Dark": 1,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "MouthInside": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "OuterCorset": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Pupils": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Shoes": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Skin": {
+    "Dark": 2,
+    "Light": 7,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Skirt": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Sleeves": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "SleeveTops": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Tongue": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  },
+  "Top": {
+    "Dark": 0,
+    "Light": 6,
+    "LightModel": [0.0, 0.85, 0.0]
+  }
+}

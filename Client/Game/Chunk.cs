@@ -19,7 +19,6 @@ public class Chunk
   private readonly Vao _vao;
   private readonly Buf _vbo;
   private readonly Buf _ibo;
-  private readonly List<(Vec3, Vec3)> _grass = new();
 
   public Chunk(Vec2i pos, World world)
   {
@@ -113,28 +112,16 @@ public class Chunk
 
   private void Build(World world)
   {
-    var size = (Quality + 1) * (Quality + 1);
+    const int size = (Quality + 1) * (Quality + 1);
     var verts = ArrayPool<ObjVtx>.Shared.Rent(size);
     for (int i = 0; i < Quality + 1; i++)
     for (int j = 0; j < Quality + 1; j++)
     {
-      verts[i * (Quality + 1) + j] = 
-        new ObjVtx { Pos = GetPos(i, j) };
+      verts[i * (Quality + 1) + j] = new ObjVtx { Pos = GetPos(i, j) };
     }
 
     BuildNormals(verts);
     
-    for (int i = 0; i < Quality + 1; i++)
-    for (int j = 0; j < Quality + 1; j++)
-    {
-      if (Random.Shared.NextSingle() < 0.01)
-      {
-        _grass.Add((
-          verts[i * (Quality + 1) + j].Pos,
-          verts[i * (Quality + 1) + j].Norm));
-      }
-    }
-
     _vbo.Data(BufUsage.StaticDraw, verts.AsSpan(), size);
     var (indices, indicesLength) = Utils.QuadIndices(Quality, Quality);
     _ibo.Data(BufUsage.StaticDraw, indices.AsSpan(), indicesLength);
@@ -163,9 +150,6 @@ public class Chunk
   };
 
   private static readonly uint _rand = (uint)Random.Shared.Next();
-
-  private static readonly Lazy<Model> _grassModel =
-    new(() => new Model(@"Res\Models\Grass.obj"));
 
   public void Draw(RenderSource source)
   {

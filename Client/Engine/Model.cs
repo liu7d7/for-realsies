@@ -35,7 +35,7 @@ public static class Shapes
     new(it => Penki.Simulation.Shapes.Add(new Sphere(it)));
 }
 
-public class Model
+public class Model : IReloadable
 {
   public static readonly Lazy<Model> Sphere =
     new(() => new Model(@"Res\Models\Sphere.obj"));
@@ -69,7 +69,8 @@ public class Model
     });
   
   public readonly List<ObjObj> Objs = new();
-  private readonly List<Tex> _texes;
+  private List<Tex> _texes;
+  private readonly string dir, filename;
   
   public Model(string path)
   {
@@ -77,12 +78,20 @@ public class Model
     var verts = new List<Vec3>();
     var uvs = new List<Vec2>();
     var norms = new List<Vec3>();
+    verts.Add(Vec3.Zero);
+    uvs.Add(Vec2.Zero);
+    norms.Add(Vec3.Zero);
+    
     var vertOff = 0;
     var uvOff = 0;
     var normOff = 0;
     var finalVerts = new List<ObjVtx>();
     var name = null as string;
-    var (mats, texes) = ReadMats(path[..path.LastIndexOf('\\')], path[(path.LastIndexOf('\\') + 1)..path.LastIndexOf('.')]);
+    var (mats, texes) = 
+      ReadMats(
+        dir = path[..path.LastIndexOf('\\')], 
+        filename = path[(path.LastIndexOf('\\') + 1)..path.LastIndexOf('.')]);
+    
     _texes = texes;
     
     foreach (var line in txt)
@@ -103,13 +112,16 @@ public class Model
         }
         
         name = line[2..];
-        vertOff += verts.Count;
-        uvOff += uvs.Count;
-        normOff += norms.Count;
+        vertOff += verts.Count - 1;
+        uvOff += uvs.Count - 1;
+        normOff += norms.Count - 1;
         finalVerts.Clear();
         verts.Clear();
         norms.Clear();
         uvs.Clear();
+        verts.Add(Vec3.Zero);
+        uvs.Add(Vec2.Zero);
+        norms.Add(Vec3.Zero);
 
         continue;
       }
@@ -162,12 +174,12 @@ public class Model
           line[2..]
             .Split(" ")
             .Select(it =>
-              it.Split("/").Select(idx => int.Parse(idx.AsSpan())).ToArray())
+              it.Split("/").Select(idx => idx.Length == 0 ? 0 : int.Parse(idx.AsSpan())).ToArray())
             .Select(it => 
               new ObjVtx(
-                verts[it[0] - vertOff - 1], 
-                uvs[it[1] - uvOff - 1], 
-                norms[it[2] - normOff - 1]))
+                verts[Math.Max(0, it[0] - vertOff)], 
+                uvs[Math.Max(0, it[1] - uvOff)],
+                norms[Math.Max(0, it[2] - normOff)]))
             .ToArray();
         
         finalVerts.AddRange(vertsOfFace);
@@ -180,6 +192,8 @@ public class Model
     }
     
     NewObj();
+    
+    Reloader.Register(this);
     
     return;
 
@@ -230,8 +244,8 @@ public class Model
       obj.Vao.Draw(PrimType.Triangles);
     }
   }
-
-  private static (Dictionary<string, Material>, List<Tex>) ReadMats(string dir, string fileName)
+  
+  private (Dictionary<string, Material>, List<Tex>) ReadMats(string dir, string fileName)
   {
     var texes = new List<Tex>();
     var mats = new Dictionary<string, Material>();
@@ -291,6 +305,21 @@ public class Model
     }
 
     return (mats, texes);
+  }
+
+  public int ReloadId { get; set; }
+  public void Reload()
+  {
+    _texes.ForEach(it => GL.DeleteTextures(1, ref it.Id));
+    _texes.Clear();
+
+    var (mats, texes) = ReadMats(dir, filename);
+    _texes = texes;
+
+    foreach (var obj in Objs)
+    {
+      obj.Mat = mats[obj.Name];
+    }
   }
 }
 

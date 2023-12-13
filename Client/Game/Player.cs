@@ -58,13 +58,8 @@ public class Player : Entity
 
   private static readonly uint _rand = (uint)Random.Shared.Next();
 
-  private static readonly Lazy<Model> _hood =
-    new(() =>
-    {
-      var mod = new Model(@"Res\Models\Hood.obj");
-      mod.Objs.Find(it => it.Name == "Hood")!.Rand = _rand;
-      return mod;
-    });
+  private static readonly Lazy<Model> _model =
+    new(() => new Model(@"Res\Models\Hana.obj"));
 
   private static readonly Lazy<Shader> _capeShader = 
     new(() => 
@@ -110,8 +105,8 @@ public class Player : Entity
 
   public override Vec3 Pos
   {
-    get => _handle.GetPos() - Vec3.UnitY * 2f;
-    set => _handle.SetPos(value + Vec3.UnitY * 2f);
+    get => _handle.GetPos() - Vec3.UnitY * 3f;
+    set => _handle.SetPos(value + Vec3.UnitY * 3f);
   }
 
   public override Vec3 Vel
@@ -132,59 +127,12 @@ public class Player : Entity
 
   public override void Draw(Mat4 model, RenderSource source)
   {
-    // _bodyYaw = _bodyYaw.AngleLerp(float.Atan2(Vel.Z, Vel.X).Deg(), 0.2f);
-    //
-    // model *= Mat4.CreateTranslation(Pos);
-    //
-    // DrawDress(model, source);
-    //
-    // DrawHand(0, model, source);
-    // DrawHand(1, model, source);
-    //
-    // model.Rotate(Vec3.UnitY, -_bodyYaw);
-    // model.Scale(Vec3.One * 0.5f);
-    // model.Translate(Vec3.UnitY * 2.0f);
-    // model.Translate(Vec3.UnitX * 0.111f);
-    // GL.Disable(EnableCap.CullFace);
-    // _hood.Get.Draw(model, source);
-    // GL.Enable(EnableCap.CullFace);
-  }
-
-  private void DrawDress(Mat4 model, RenderSource source)
-  {
-    model.Rotate(Vec3.UnitY, 180f - _bodyYaw);
-    _shader[source].Bind()
-      .Defaults(source)
-      .Mat(_mat)
-      .Float1("u_slices", Slices)
-      .Float1("u_layers", Layers)
-      .Float1("u_start", Start)
-      .Float1("u_end", End)
-      .Mat4("u_model", model)
-      .Uint("u_id", _rand);
-    _cape.Get.Item1.Draw(PrimType.Triangles);
-  }
-
-  private static float HandProgressToAngle(float prog)
-  {
-    var t = (float)GLFW.GetTime() - prog;
-    const float swingLength = 0.33f;
-    const float halfSwingLength = swingLength / 2f;
-    return t switch
-    {
-      > swingLength => 0,
-      > halfSwingLength => (1 - (t - halfSwingLength) / halfSwingLength) * 60f,
-      _ => t / halfSwingLength * 60f
-    };
-  }
-
-  private void DrawHand(int hand, Mat4 model, RenderSource source)
-  {
-    model.Scale(Vec3.One * 0.2f);
-    model.Translate(Vec3.UnitY * 1.4f);
-    model.Rotate(Vec3.UnitY, HandProgressToAngle(_handProgress[hand]) * (hand - 0.5f) * 2 - _bodyYaw + 180);
-    model.Translate(Vec3.UnitZ * -0.7f * (hand - 0.5f) * 2);
-    Model.Sphere.Get.Draw(model, source);
+    _bodyYaw = _bodyYaw.AngleLerp(float.Atan2(Vel.Z, Vel.X).Deg(), 0.2f);
+    
+    model.Translate(Pos); 
+    model.Rotate(Vec3.UnitY, -_bodyYaw + 90);
+    
+    _model.Get.Draw(model, source);
   }
 
   public bool SwingInProgress => GLFW.GetTime() - _handProgress[0] <= 0.33f ||
