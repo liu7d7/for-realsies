@@ -56,7 +56,7 @@ public class Model : IReloadable
   private static readonly Lazy<Shader> _depth =
     new(() =>
       new Shader(
-        (ShaderType.VertexShader, @"Res\Shaders\Model.vsh"),
+        (ShaderType.VertexShader, @"Res\Shaders\ModelDepth.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Depth.fsh")));
   
   public static readonly Memo<Shader, RenderSource> Shader = 
@@ -356,7 +356,7 @@ public class InstancedModel
   private static readonly Lazy<Shader> _depth =
     new(() => 
       new Shader(
-        (ShaderType.VertexShader, @"Res\Shaders\InstancedModel.vsh"),
+        (ShaderType.VertexShader, @"Res\Shaders\InstancedModelDepth.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Depth.fsh")));
   
   private static readonly Lazy<Shader> _wireframe =
