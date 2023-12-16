@@ -74,7 +74,7 @@ public class Chunk
     }
   }
 
-  public static float HeightAtBilerp(Vec3 pos)
+  public static float HeightAtBiLerp(Vec3 pos)
   {
     int x1 = (int)MathF.Floor(pos.X);
     int z1 = (int)MathF.Floor(pos.Z);
@@ -128,13 +128,20 @@ public class Chunk
 
     var tris = Utils.Tris(verts.AsSpan(), indices.AsSpan(), indicesLength, Penki.BufferPool);
     var mesh = new Mesh(tris, Vector3.One, Penki.BufferPool);
-    var chunkShape = Penki.Simulation.Shapes.Add(mesh);
-    Penki.Simulation.Statics.Add(new StaticDescription(Vector3.Zero, chunkShape));
+    var chunkShape = world.Sim.Shapes.Add(mesh);
+    world.Sim.Statics.Add(new StaticDescription(Vector3.Zero, chunkShape));
     
-    world.Add(new Ball(GetPos(Quality / 2, Quality / 2) + (0, 5, 0)));
-    world.Add(new Ball(GetPos(Quality / 2, Quality / 2) + (0, 7, 2)));
-    world.Add(new Cube(GetPos(Quality / 2, Quality / 2) + (0, 10, 0)));
-    world.Add(new Cube(GetPos(Quality / 2, Quality / 2) + (2, 15, 0)));
+    for (int i = 0; i < 5; i++)
+    {
+      world.Add(new Ball(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+      world.Add(new Ball(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+    }
+    
+    for (int i = 0; i < 5; i++)
+    {
+      world.Add(new Cube(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+      world.Add(new Cube(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+    }
     
     verts.Return();
     indices.Return();

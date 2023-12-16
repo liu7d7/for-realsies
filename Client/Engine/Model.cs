@@ -17,11 +17,11 @@ public class Material
   public required int Normals;
   public required int Alpha;
   public float Shine = 32;
+  public bool Cull = true;
 }
 
 public class ObjObj
 {
-  public required List<ObjVtx> Mesh;
   public required Material Mat;
   public required string Name;
   public required Vao Vao;
@@ -31,15 +31,15 @@ public class ObjObj
 
 public static class Shapes
 {
-  public static Memo<TypedIndex, float> Sphere =
-    new(it => Penki.Simulation.Shapes.Add(new Sphere(it)));
+  public static Memo<TypedIndex, (World, float)> Sphere =
+    new(it => it.Item1.Sim.Shapes.Add(new Sphere(it.Item2)));
+  
+  public static Memo<TypedIndex, (World, float)> Cube =
+    new(it => it.Item1.Sim.Shapes.Add(new Box(it.Item2, it.Item2, it.Item2)));
 }
 
 public class Model : IReloadable
 {
-  public static readonly Lazy<Model> Sphere =
-    new(() => new Model(@"Res\Models\Sphere.obj"));
-  
   private static readonly Lazy<Shader> _wireframe =
     new(() =>
       new Shader(
@@ -69,12 +69,13 @@ public class Model : IReloadable
     });
   
   public readonly List<ObjObj> Objs = new();
-  private List<Tex> _texes;
+  public List<Tex> Texes;
   private readonly string dir, filename;
   
   public Model(string path)
   {
-    var txt = File.ReadAllLines(path);
+    using var stream = File.OpenRead(path);
+    using var reader = new StreamReader(stream);
     var verts = new List<Vec3>();
     var uvs = new List<Vec2>();
     var norms = new List<Vec3>();
@@ -92,11 +93,11 @@ public class Model : IReloadable
         dir = path[..path.LastIndexOf('\\')], 
         filename = path[(path.LastIndexOf('\\') + 1)..path.LastIndexOf('.')]);
     
-    _texes = texes;
-    
-    foreach (var line in txt)
+    Texes = texes;
+
+    while (reader.ReadLine() is { } line)
     {
-      if (line.StartsWith("#") || 
+      if (line.StartsWith('#') || 
           line.StartsWith("mtllib") || 
           line.StartsWith("usemtl") ||
           line.StartsWith("s "))
@@ -214,7 +215,6 @@ public class Model : IReloadable
       {
         Name = name,
         Mat = mats[name],
-        Mesh = finalVerts,
         Vbo = vbo,
         Vao = vao,
         Rand = (uint)Random.Shared.Next()
@@ -228,12 +228,12 @@ public class Model : IReloadable
     {
       if (obj.Mat.Normals != -1)
       {
-        _texes[obj.Mat.Normals].Bind(TexUnit.Texture0);
+        Texes[obj.Mat.Normals].Bind(TexUnit.Texture0);
       }
       
       if (obj.Mat.Alpha != -1)
       {
-        _texes[obj.Mat.Alpha].Bind(TexUnit.Texture1);
+        Texes[obj.Mat.Alpha].Bind(TexUnit.Texture1);
       }
 
       Shader[source].Bind()
@@ -241,7 +241,19 @@ public class Model : IReloadable
         .Mat4("u_model", model)
         .Uint("u_id", obj.Rand)
         .Mat(obj.Mat);
+
+      GL.Enable(EnableCap.CullFace);
+      if (!obj.Mat.Cull)
+      {
+        GL.Disable(EnableCap.CullFace);
+      }
+      
       obj.Vao.Draw(PrimType.Triangles);
+
+      if (!obj.Mat.Cull)
+      {
+        GL.Enable(EnableCap.CullFace);
+      }
     }
   }
   
@@ -290,6 +302,11 @@ public class Model : IReloadable
         mat.Value["Shine"]
           ?.Value<float>()
         ?? 32.0f;
+
+      var cull =
+        mat.Value["Cull"]
+          ?.Value<bool>()
+        ?? true;
       
       mats.Add(
         name, 
@@ -300,7 +317,8 @@ public class Model : IReloadable
           LightModel = lightModel,
           Normals = norm ?? -1,
           Shine = shine,
-          Alpha = alpha ?? -1
+          Alpha = alpha ?? -1,
+          Cull = cull
         });
     }
 
@@ -310,15 +328,122 @@ public class Model : IReloadable
   public int ReloadId { get; set; }
   public void Reload()
   {
-    _texes.ForEach(it => GL.DeleteTextures(1, ref it.Id));
-    _texes.Clear();
+    Texes.ForEach(it => GL.DeleteTextures(1, ref it.Id));
+    Texes.Clear();
 
     var (mats, texes) = ReadMats(dir, filename);
-    _texes = texes;
+    Texes = texes;
 
     foreach (var obj in Objs)
     {
       obj.Mat = mats[obj.Name];
+    }
+  }
+}
+
+public class InstancedModel
+{
+  private readonly Model _model;
+  private readonly Buf _transformsBuf;
+  private readonly List<Mat4> _transforms = new();
+
+  private static readonly Lazy<Shader> _real =
+    new(() => 
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\InstancedModel.vsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Model.fsh")));
+  
+  private static readonly Lazy<Shader> _depth =
+    new(() => 
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\InstancedModel.vsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Depth.fsh")));
+  
+  private static readonly Lazy<Shader> _wireframe =
+    new(() => 
+      new Shader(
+        (ShaderType.VertexShader, @"Res\Shaders\InstancedModel.vsh"),
+        (ShaderType.GeometryShader, @"Res\Shaders\Wireframe.gsh"),
+        (ShaderType.FragmentShader, @"Res\Shaders\Lines.fsh")));
+  
+  public static readonly Memo<Shader, RenderSource> Shader = 
+    new(source => source switch
+    {
+      RenderSource.Lightmap => _depth.Get,
+      RenderSource.World when Penki.Wireframe => _wireframe.Get,
+      RenderSource.World when !Penki.Wireframe => _real.Get,
+      _ => throw new UnreachableException("uh")
+    });
+
+  private static readonly List<InstancedModel> _instances = new();
+  
+  public InstancedModel(Model model)
+  {
+    _model = model;
+    _transformsBuf = new Buf(BufferTarget.ArrayBuffer);
+    
+    foreach (var obj in _model.Objs)
+    {
+      obj.Vao.AddVbo(_transformsBuf, 1, Vao.Attrib.Float4, Vao.Attrib.Float4, Vao.Attrib.Float4, Vao.Attrib.Float4);
+    }
+    
+    _instances.Add(this);
+  }
+
+  public void Add(Mat4 model)
+  {
+    _transforms.Add(model);
+  }
+
+  public static void DrawAll(RenderSource source)
+  {
+    foreach (var it in _instances)
+    {
+      if (it._transforms.Count == 0) continue;
+      
+      it._transformsBuf.Data(BufferUsageHint.DynamicDraw, it._transforms.AsSpan(),
+        it._transforms.Count);
+
+      foreach (var obj in it._model.Objs)
+      {
+        if (obj.Mat.Normals != -1)
+        {
+          it._model.Texes[obj.Mat.Normals].Bind(TexUnit.Texture0);
+        }
+
+        if (obj.Mat.Alpha != -1)
+        {
+          it._model.Texes[obj.Mat.Alpha].Bind(TexUnit.Texture1);
+        }
+
+        Shader[source].Bind()
+          .Defaults(source)
+          .Uint("u_id", obj.Rand)
+          .Mat(obj.Mat);
+
+        GL.Enable(EnableCap.CullFace);
+        if (!obj.Mat.Cull)
+        {
+          GL.Disable(EnableCap.CullFace);
+        }
+
+        obj.Vao.Draw(PrimType.Triangles);
+
+        if (!obj.Mat.Cull)
+        {
+          GL.Enable(EnableCap.CullFace);
+        }
+
+        obj.Vao.DrawInstanced(PrimitiveType.Triangles, it._transforms.Count);
+      }
+    }
+  }
+
+  public static void ClearAll()
+  {
+    foreach (var it in _instances)
+    {
+      it._transforms.Clear();
     }
   }
 }

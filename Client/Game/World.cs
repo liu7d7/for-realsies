@@ -1,4 +1,8 @@
-﻿using OpenTK.Mathematics;
+﻿using BepuPhysics;
+using BepuPhysics.Constraints;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using OpenTK.Mathematics;
 using Penki.Client.Engine;
 
 namespace Penki.Client.Game;
@@ -7,12 +11,16 @@ public class World
 {
   private readonly Dictionary<Vector2i, Chunk> _chunks = new();
   private readonly List<Entity> _entities = new();
-  public readonly Camera Cam;
+  
+  public readonly Simulation Sim = 
+    Simulation.Create(
+      Penki.BufferPool, 
+      new DemoNarrowPhaseCallbacks(new SpringSettings(80, 0.8f)), 
+      new DemoPoseIntegratorCallbacks(new System.Numerics.Vector3(0, -10, 0)),
+      new SolveDescription(8, 4));
 
-  public World(Camera cam)
-  {
-    Cam = cam;
-  }
+  public readonly ThreadDispatcher ThreadDispatcher =
+    new ThreadDispatcher(Environment.ProcessorCount);
 
   public void Add(Entity entity)
   {
@@ -23,7 +31,7 @@ public class World
 
   private void GenerateChunks()
   {
-    var chunkPos = Cam.Pos.ToChunk();
+    var chunkPos = Penki.Cam.Pos.ToChunk();
     for (int i = -RenderDistance * 2; i <= RenderDistance * 2; i++)
     for (int j = -RenderDistance * 2; j <= RenderDistance * 2; j++)
     {
@@ -39,7 +47,7 @@ public class World
   {
     GenerateChunks();
     
-    var chunkPos = Cam.Pos.ToChunk();
+    var chunkPos = Penki.Cam.Pos.ToChunk();
     for (int i = -RenderDistance; i <= RenderDistance; i++)
     for (int j = -RenderDistance; j <= RenderDistance; j++)
     {
@@ -49,7 +57,7 @@ public class World
 
     foreach (var it in _entities)
     {
-      if (it.Pos.Dist(Cam.Pos) > 100) continue;
+      if (it.Pos.Dist(Penki.Cam.Pos) > 100) continue;
       
       it.Draw(Mat4.Identity, source);
     }
@@ -57,9 +65,11 @@ public class World
 
   public void Tick(float dt)
   {
+    Sim.Timestep(1.0f / 50f, ThreadDispatcher);
+    
     foreach (var it in _entities)
     {
-      if (it.Pos.Dist(Cam.Pos) > 100) continue;
+      if (it.Pos.Dist(Penki.Cam.Pos) > 100) continue;
       
       it.Tick(dt);
     }

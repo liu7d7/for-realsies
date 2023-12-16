@@ -10,32 +10,35 @@ public class Ball : Entity
 {
   public override Vec3 Pos
   {
-    get => Penki.Simulation.Bodies.GetDescription(_handle).Pose.Position.ToTk();
+    get => _handle.GetPos(World.Sim);
     set => throw new UnreachableException("Cannot set position of ball"); 
   }
 
   public override Vec3 Vel
   {
-    get => Penki.Simulation.Bodies.GetDescription(_handle).Velocity.Linear.ToTk();
+    get => _handle.GetVel(World.Sim);
     set => throw new UnreachableException("Cannot set velocity of ball");
   }
 
   private readonly BodyHandle _handle;
 
-  public Ball(Vec3 pos)
+  public static readonly Lazy<InstancedModel> Model =
+    new(() => new InstancedModel(new Model(@"Res\Models\Sphere.obj")));
+
+  public Ball(World world, Vec3 pos) : base(world)
   {
-    _handle = Penki.Simulation.Bodies.Add(
+    _handle = world.Sim.Bodies.Add(
       BodyDescription.CreateDynamic(
         pos.ToNumerics(),
         new Sphere(1).ComputeInertia(1),
-        Shapes.Sphere[1],
+        Shapes.Sphere[(world, 1)],
         0.001f));
   }
 
   public override void Draw(Mat4 model, RenderSource source)
   {
     model.Translate(Pos);
-    Model.Sphere.Get.Draw(model, source);
+    Model.Get.Add(model);
   }
 
   public override void Tick(float dt)

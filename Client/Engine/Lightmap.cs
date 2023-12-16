@@ -13,7 +13,7 @@ public class Lightmap
     Mat4.CreateOrthographic(200f, 200f, Near, Far);
 
   public static Mat4 View =>
-    Mat4.LookAt(Penki.Cam.Pos + new Vec3(-1, 2, -1).Normalized() * 45, Penki.Cam.Pos, Vec3.UnitY);
+    Mat4.LookAt(Penki.Cam.Pos + new Vec3(-1, 2, -1).Normalized() * 40, Penki.Cam.Pos, Vec3.UnitY);
   
   public Lightmap(int width, int height)
   {

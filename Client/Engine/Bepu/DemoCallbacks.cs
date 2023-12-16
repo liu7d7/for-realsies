@@ -5,6 +5,57 @@ using BepuPhysics.CollisionDetection;
 using BepuPhysics.Constraints;
 using System.Runtime.CompilerServices;
 using System.Numerics;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+
+public struct BatcherCallbacks : ICollisionCallbacks
+{
+  public Buffer<bool> QueryWasTouched;
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public bool AllowCollisionTesting(int pairId, int childA, int childB)
+  {
+    return true;
+  }
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public void OnChildPairCompleted(int pairId, int childA, int childB,
+    ref ConvexContactManifold manifold)
+  {
+  }
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public void OnPairCompleted<TManifold>(int pairId, ref TManifold manifold)
+    where TManifold : unmanaged, IContactManifold<TManifold>
+  {
+    for (int i = 0; i < manifold.Count; ++i)
+    {
+      if (!(manifold.GetDepth(ref manifold, i) >= 0)) continue;
+
+      QueryWasTouched[pairId] = true;
+      break;
+    }
+  }
+}
+
+/// <summary>
+/// Called by the BroadPhase.GetOverlaps to collect all encountered collidables.
+/// </summary>
+struct BroadPhaseOverlapEnumerator : IBreakableForEach<CollidableReference>
+{
+  public QuickList<CollidableReference> References;
+
+  //The enumerator never gets stored into unmanaged memory, so it's safe to include a reference type instance.
+  public BufferPool Pool;
+
+  public bool LoopBody(CollidableReference reference)
+  {
+    References.Allocate(Pool) = reference;
+    //If you wanted to do any top-level filtering, this would be a good spot for it.
+    //The CollidableReference tells you whether it's a body or a static object and the associated handle. You can look up metadata with that.
+    return true;
+  }
+}
 
 public struct DemoPoseIntegratorCallbacks : IPoseIntegratorCallbacks
 {
@@ -113,7 +164,7 @@ public struct DemoPoseIntegratorCallbacks : IPoseIntegratorCallbacks
     //The types are laid out in array-of-structures-of-arrays (AOSOA) format. That's because this function is frequently called from vectorized contexts within the solver.
     //Transforming to "array of structures" (AOS) format for the callback and then back to AOSOA would involve a lot of overhead, so instead the callback works on the AOSOA representation directly.
     velocity.Linear = (velocity.Linear + gravityWideDt) * linearDampingDt;
-    velocity.Angular = velocity.Angular * angularDampingDt;
+    velocity.Angular *= angularDampingDt;
   }
 }
 
@@ -134,13 +185,12 @@ public struct DemoNarrowPhaseCallbacks : INarrowPhaseCallbacks
   public void Initialize(Simulation simulation)
   {
     //Use a default if the springiness value wasn't initialized... at least until struct field initializers are supported outside of previews.
-    if (ContactSpringiness.AngularFrequency == 0 &&
-        ContactSpringiness.TwiceDampingRatio == 0)
-    {
-      ContactSpringiness = new(30, 1);
-      MaximumRecoveryVelocity = 2f;
-      FrictionCoefficient = 1f;
-    }
+    if (ContactSpringiness.AngularFrequency != 0 ||
+        ContactSpringiness.TwiceDampingRatio != 0) return;
+    
+    ContactSpringiness = new SpringSettings(30, 1);
+    MaximumRecoveryVelocity = 2f;
+    FrictionCoefficient = 1f;
   }
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]

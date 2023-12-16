@@ -16,22 +16,6 @@ namespace Penki.Client;
 
 public static class Penki
 {
-  public static readonly BufferPool BufferPool = new BufferPool();
-  public static readonly Simulation Simulation = 
-    Simulation.Create(
-      BufferPool, 
-      new DemoNarrowPhaseCallbacks(new SpringSettings(80, 0.8f)), 
-      new DemoPoseIntegratorCallbacks(new System.Numerics.Vector3(0, -10, 0)),
-      new SolveDescription(8, 4));
-  
-  public static readonly ThreadDispatcher ThreadDispatcher = 
-    new ThreadDispatcher(
-      int.Max(
-        1, 
-        Environment.ProcessorCount > 4 ? 
-          Environment.ProcessorCount - 2 : 
-          Environment.ProcessorCount - 1));
-  
   private static readonly GameWindow _win =
     new GameWindow(
       new GWS
@@ -50,7 +34,9 @@ public static class Penki
 
   public static Vector2i Size => _win.ClientSize;
   public static Vec2 SizeF => new(_win.ClientSize.X, _win.ClientSize.Y);
-  public static bool Wireframe = false;
+  public static bool Wireframe;
+  
+  public static readonly BufferPool BufferPool = new BufferPool();
 
   public static CursorState Cursor
   {
@@ -74,24 +60,21 @@ public static class Penki
     new(() =>
       new Fbo((FramebufferAttachment.ColorAttachment0, TexConf.Rgba32(FboSize))));
 
-  private static readonly Lazy<Shader> _outline =
-    new(() =>
-      new Shader(
-        (ShaderType.VertexShader, @"Res\Shaders\Postprocess.vsh"),
-        (ShaderType.FragmentShader, @"Res\Shaders\Outline.fsh")));
-  
   private static readonly Lazy<Shader> _dither =
     new(() =>
       new Shader(
         (ShaderType.VertexShader, @"Res\Shaders\Postprocess.vsh"),
         (ShaderType.FragmentShader, @"Res\Shaders\Dither.fsh")));
 
-  private static readonly Player _player = new Player();
+  public static Camera Cam => _player.Get.Cam;
 
-  public static Camera Cam => _player.Cam;
-
-  private static readonly Lazy<World> _world = 
-    new(() => new World(_player.Cam).Also(it => it.Add(_player)));
+  private static readonly World _world = new World();
+  
+  private static readonly Lazy<Player> _player = 
+    new(() => new Player(_world).Also(it =>
+    {
+      _world.Add(it);
+    }));
 
   private static readonly Lazy<Skybox> _sky = new(() =>
     new Skybox(@"Res\Skyboxes\Anime\Anime"));
@@ -185,7 +168,11 @@ public static class Penki
     GL.DepthFunc(DepthFunction.Less);
     GL.Enable(EnableCap.CullFace);
     
-    _lightmap.Get.Consume(() => _world.Get.Draw(RenderSource.Lightmap));
+    _lightmap.Get.Consume(() =>
+    {
+      _world.Draw(RenderSource.Lightmap);
+      InstancedModel.DrawAll(RenderSource.Lightmap);
+    });
     
     GL.Viewport(0, 0, FboSize.X, FboSize.Y);
     
@@ -201,7 +188,9 @@ public static class Penki
       .Clear(ClearBuffer.Depth, 0, stackalloc float[] {1});
     _lightmap.Get.Fbo.BindTex(FramebufferAttachment.DepthAttachment, 7);
     
-    _world.Get.Draw(RenderSource.World);
+    _world.Draw(RenderSource.World);
+    InstancedModel.DrawAll(RenderSource.World);
+    InstancedModel.ClearAll();
     
     GL.DepthFunc(DepthFunction.Lequal);
     
@@ -233,8 +222,8 @@ public static class Penki
     GL.Enable(EnableCap.Blend);
     GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
     _fps.Add(args.Time);
-    Font.Draw($"pos: {_player.Pos.X:.00}, {_player.Pos.Y:.00}, {_player.Pos.Z:.00}", 10, 10, Vec3.One, true);
-    Font.Draw($"cpos: {_player.Pos.ToChunk().X}, {_player.Pos.ToChunk().Y}", 10, 50, Vec3.One, true);
+    Font.Draw($"pos: {_player.Get.Pos.X:.00}, {_player.Get.Pos.Y:.00}, {_player.Get.Pos.Z:.00}", 10, 10, Vec3.One, true);
+    Font.Draw($"cpos: {_player.Get.Pos.ToChunk().X}, {_player.Get.Pos.ToChunk().Y}", 10, 50, Vec3.One, true);
     Font.Draw($"fps: {1.0 / _fps.Average:.00}", 10, 90, Vec3.One, true);
     Font.Draw($"mem: {GC.GetTotalMemory(false) / 1024 / 1024}M", 10, 130, Vec3.One, true);
 
@@ -254,18 +243,11 @@ public static class Penki
 
     GL.Viewport(0, 0, args.Size.X, args.Size.Y);
   }
-
-  private const float TimeStep = 1f / 60f;
   
   private static void Tick(FrameEventArgs args)
   {
-    if (_step)
-    {
-      Simulation.Timestep(TimeStep, ThreadDispatcher);
-    }
-    
     Cam.Tick();
-    _world.Get.Tick((float) args.Time);
+    _world.Tick((float) args.Time);
   }
 
   private static void MouseMove(MouseMoveEventArgs args)
@@ -276,7 +258,6 @@ public static class Penki
   private static void MouseDown(MouseButtonEventArgs args)
   {
     Cursor = CursorState.Grabbed;
-    _player.MouseDown(args);
   }
 
   private static void KeyDown(KeyboardKeyEventArgs args)
@@ -297,7 +278,7 @@ public static class Penki
         break;
     }
     
-    _player.KeyDown(args);
+    _player.Get.KeyDown(args);
   }
 
 }

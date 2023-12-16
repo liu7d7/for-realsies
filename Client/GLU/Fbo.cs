@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -14,7 +15,8 @@ public record struct TexConf(
   MinFilter Min,
   MagFilter Mag,
   int Width,
-  int Height)
+  int Height,
+  Vec4 Border)
 {
   public static TexConf Depth24(Vec2i size)
   {
@@ -26,21 +28,23 @@ public record struct TexConf(
       MinFilter.Nearest,
       MagFilter.Nearest,
       size.X,
-      size.Y
+      size.Y,
+      Vec4.Zero
     );
   }
   
-  public static TexConf Depth24Linear(Vec2i size)
+  public static TexConf Depth24Lightmap(Vec2i size)
   {
     return new TexConf(
       SzIntFmt.DepthComponent24,
       PixIntFmt.DepthComponent24,
       PixFmt.DepthComponent,
       PixType.Float,
-      MinFilter.Linear,
-      MagFilter.Linear,
+      MinFilter.Nearest,
+      MagFilter.Nearest,
       size.X,
-      size.Y
+      size.Y,
+      Vec4.One
     );
   }
 
@@ -54,7 +58,8 @@ public record struct TexConf(
       MinFilter.Nearest,
       MagFilter.Nearest,
       size.X,
-      size.Y
+      size.Y,
+      Vec4.Zero
     );
   }
   
@@ -68,7 +73,8 @@ public record struct TexConf(
       MinFilter.Nearest,
       MagFilter.Nearest,
       size.X,
-      size.Y
+      size.Y,
+      Vec4.Zero
     );
   }
   
@@ -82,7 +88,8 @@ public record struct TexConf(
       MinFilter.Nearest,
       MagFilter.Nearest,
       size.X,
-      size.Y
+      size.Y,
+      Vec4.Zero
     );
   }
 }
@@ -183,10 +190,14 @@ public class Fbo
   private static int MakeTex(TexConf it)
   {
     GL.CreateTextures(TexType.Texture2D, 1, out int tex);
-    GL.TextureParameter(tex, TexParam.TextureWrapS, (int)All.MirroredRepeat);
-    GL.TextureParameter(tex, TexParam.TextureWrapT, (int)All.MirroredRepeat);
+    GL.TextureParameter(tex, TexParam.TextureWrapS, (int)All.ClampToEdge);
+    GL.TextureParameter(tex, TexParam.TextureWrapT, (int)All.ClampToEdge);
     GL.TextureParameter(tex, TexParam.TextureMinFilter, (int)it.Min);
     GL.TextureParameter(tex, TexParam.TextureMinFilter, (int)it.Mag);
+    GL.TextureParameter(tex, TexParam.TextureBorderColor, new[]
+    {
+      it.Border.X, it.Border.Y, it.Border.Z, it.Border.W
+    });
     GL.TextureStorage2D(tex, 1, it.SzIntFmt, it.Width, it.Height);
     return tex;
   }

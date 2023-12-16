@@ -2,49 +2,52 @@
 using BepuPhysics.Collidables;
 using OpenTK.Mathematics;
 using Penki.Client.Engine;
+using Shapes = Penki.Client.Engine.Shapes;
 
 namespace Penki.Client.Game;
 
-public class Cube(Vec3 pos) : Entity
+public class Cube : Entity
 {
   public override Vec3 Pos
   {
-    get => _handle.GetPos();
-    set => _handle.SetPos(value);
+    get => _handle.GetPos(World.Sim);
+    set => _handle.SetPos(World.Sim, value);
   }
 
   public override Vec3 Vel
   {
-    get => _handle.GetPos(); 
-    set => _handle.SetPos(value);
+    get => _handle.GetPos(World.Sim); 
+    set => _handle.SetPos(World.Sim, value);
   }
 
   public Quaternion Orient
   {
-    get => _handle.GetOrient();
-    set => _handle.SetOrient(value);
+    get => _handle.GetOrient(World.Sim);
+    set => _handle.SetOrient(World.Sim, value);
   }
 
-  private static readonly Lazy<Model> _cube =
-    new(() => new Model(@"Res\Models\Cube.obj"));
-  
-  private static readonly Lazy<TypedIndex> _cubeIndex =
-    new(() => Penki.Simulation.Shapes.Add(new Box(2, 2, 2)));
+  private static readonly Lazy<InstancedModel> _cube =
+    new(() => new InstancedModel(new Model(@"Res\Models\Cube.obj")));
 
-  private readonly BodyHandle _handle =
-    Penki.Simulation.Bodies.Add(
-      BodyDescription.CreateDynamic(
-        new RigidPose(pos.ToNumerics()),
-        new Box(2, 2, 2).ComputeInertia(1),
-        new CollidableDescription(_cubeIndex.Get),
-        0.01f));
+  private readonly BodyHandle _handle;
+
+  public Cube(World world, Vec3 pos) : base(world)
+  {
+    _handle =
+      world.Sim.Bodies.Add(
+        BodyDescription.CreateDynamic(
+          new RigidPose(pos.ToNumerics()),
+          new Box(2, 2, 2).ComputeInertia(1),
+          Shapes.Cube[(world, 2)],
+          0.01f));
+  }
   
   public override void Draw(Mat4 model, RenderSource source)
   {
     model.Translate(Pos);
     model.Rotate(Orient);
     
-    _cube.Get.Draw(model, source);
+    _cube.Get.Add(model);
   }
 
   public override void Tick(float dt)

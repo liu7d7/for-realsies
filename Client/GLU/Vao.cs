@@ -10,58 +10,35 @@ public class Vao
   public readonly int Id;
   private readonly Func<int> _size;
   private readonly Buf? _ibo;
-  private readonly Buf[] _vbo;
+  private Buf[] _vbos;
+  private int _attribs = 0;
   
   public Vao(Buf vbo, Buf? ibo, params Attrib[] attribs)
   {
-    (_vbo, _ibo) = (new[] { vbo }, ibo);
+    (_vbos, _ibo) = (Array.Empty<Buf>(), ibo);
     
     GL.CreateVertexArrays(1, out Id);
-    
-    int stride = attribs.Sum(AttribSizeInBytes);
-    GL.VertexArrayVertexBuffer(Id, 0, vbo.Id, IntPtr.Zero, stride);
+
+    AddVbo(vbo, 0, attribs);
     _size = () => vbo.Size;
-    
-    if (ibo != null)
-    {
-      GL.VertexArrayElementBuffer(Id, ibo.Id);
-      _size = () => ibo.Size;
-    }
 
-    int off = 0;
-    foreach (var (it, i) in attribs.Indexed())
-    {
-      GL.EnableVertexArrayAttrib(Id, i);
-      if (AttribType(it) == VertexAttribType.Float)
-      {
-        GL.VertexArrayAttribFormat(Id, i, AttribSize(it), AttribType(it), false,
-          off);
-      }
-      else
-      {
-        GL.VertexArrayAttribIFormat(Id, i, AttribSize(it), AttribType(it), off);
-      }
-      GL.VertexArrayAttribBinding(Id, i, 0);
-      
-      off += AttribSizeInBytes(it);
-    }
+    if (ibo == null) return;
+    
+    GL.VertexArrayElementBuffer(Id, ibo.Id);
+    _size = () => ibo.Size;
   }
-  
-  public Vao(Buf[] vbo, Func<int> size, params (Attrib, int, int)[] attribs)
-  {
-    (_vbo, _ibo, _size) = (vbo, null, size);
-    
-    GL.CreateVertexArrays(1, out Id);
-    
-    int stride = attribs.Select(it => it.Item1).Sum(AttribSizeInBytes);
-    foreach (var (it, i) in vbo.Indexed())
-    {
-      GL.VertexArrayVertexBuffer(Id, i, it.Id, IntPtr.Zero, stride);
-    }
 
+  public void AddVbo(Buf vbo, int divisor, params Attrib[] attribs)
+  {
+    _vbos = _vbos.Concat(new[] { vbo }).ToArray();
+    int stride = attribs.Sum(AttribSizeInBytes);
+    int bindingindex = _vbos.Length - 1;
+    GL.VertexArrayVertexBuffer(Id, bindingindex, vbo.Id, 0, stride);
+    
     int off = 0;
-    foreach (var ((it, binding, div), i) in attribs.Indexed())
+    foreach (var (it, j) in attribs.Indexed())
     {
+      var i = _attribs + j;
       GL.EnableVertexArrayAttrib(Id, i);
       if (AttribType(it) == VertexAttribType.Float)
       {
@@ -72,16 +49,18 @@ public class Vao
       {
         GL.VertexArrayAttribIFormat(Id, i, AttribSize(it), AttribType(it), off);
       }
-
-      if (div != 0)
-      {
-        GL.VertexArrayBindingDivisor(Id, binding, div);
-      }
       
-      GL.VertexArrayAttribBinding(Id, i, binding);
+      GL.VertexArrayAttribBinding(Id, i, bindingindex);
+
+      if (divisor != 0)
+      {
+        GL.VertexArrayBindingDivisor(Id, bindingindex, divisor);
+      }
       
       off += AttribSizeInBytes(it);
     }
+
+    _attribs += attribs.Length;
   }
 
   private void Bind()
@@ -93,7 +72,7 @@ public class Vao
   {
     Bind();
     
-    foreach (var it in _vbo)
+    foreach (var it in _vbos)
     {
       it.Bind();
     }
@@ -115,7 +94,7 @@ public class Vao
     
     Bind();
     
-    foreach (var it in _vbo)
+    foreach (var it in _vbos)
     {
       it.Bind();
     }
@@ -125,16 +104,26 @@ public class Vao
 
   public static int AttribSizeInBytes(Attrib it)
   {
-    return AttribSize(it) * 4;
+    return AttribSize(it) * sizeof(float);
   }
   
   public static int AttribSize(Attrib it)
   {
+    if (it == Attrib.Mat4)
+    {
+      return 16;
+    }
+    
     return (int)it % 4 + 1;
   }
 
   public static VertexAttribType AttribType(Attrib it)
   {
+    if (it == Attrib.Mat4)
+    {
+      return VertexAttribType.Float;
+    }
+    
     return (int)it >= 4 ? VertexAttribType.Int : VertexAttribType.Float;
   } 
   
@@ -147,6 +136,7 @@ public class Vao
     Int1,
     Int2,
     Int3,
-    Int4
+    Int4,
+    Mat4
   }
 }

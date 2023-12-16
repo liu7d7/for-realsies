@@ -118,37 +118,42 @@ public static class Extensions
 {
   public delegate void Consumer<in T>(T me);
 
+  public static void DoNothing<T>(this T me)
+  {
+    
+  }
+
   public static IEnumerable<(T, int)> Indexed<T>(this IEnumerable<T> orig)
   {
     return orig.Select((it, i) => (it, i));
   }
 
-  public static void SetPos(this BodyHandle handle, Vec3 pos)
+  public static void SetPos(this BodyHandle handle, Simulation sim, Vec3 pos)
   {
-    var desc = Client.Penki.Simulation.Bodies.GetDescription(handle);
-    Client.Penki.Simulation.Bodies.ApplyDescription(handle, desc with
+    var desc = sim.Bodies.GetDescription(handle);
+    sim.Bodies.ApplyDescription(handle, desc with
     {
       Pose = desc.Pose with { Position = pos.ToNumerics() }
     });
   }
   
-  public static Vec3 GetPos(this BodyHandle handle)
+  public static Vec3 GetPos(this BodyHandle handle, Simulation sim)
   {
-    return Client.Penki.Simulation.Bodies.GetDescription(handle).Pose.Position.ToTk();
+    return sim.Bodies.GetDescription(handle).Pose.Position.ToTk();
   }
   
-  public static void SetVel(this BodyHandle handle, Vec3 vel)
+  public static void SetVel(this BodyHandle handle, Simulation sim, Vec3 vel)
   {
-    var desc = Client.Penki.Simulation.Bodies.GetDescription(handle);
-    Client.Penki.Simulation.Bodies.ApplyDescription(handle, desc with
+    var desc = sim.Bodies.GetDescription(handle);
+    sim.Bodies.ApplyDescription(handle, desc with
     {
       Velocity = desc.Velocity with { Linear = vel.ToNumerics() }
     });
   }
   
-  public static Vec3 GetVel(this BodyHandle handle)
+  public static Vec3 GetVel(this BodyHandle handle, Simulation sim)
   {
-    return Client.Penki.Simulation.Bodies.GetDescription(handle).Velocity.Linear.ToTk();
+    return sim.Bodies.GetDescription(handle).Velocity.Linear.ToTk();
   }
 
   public static System.Numerics.Quaternion ToNumerics(this Quaternion quat)
@@ -161,18 +166,18 @@ public static class Extensions
     return new Quaternion(quat.X, quat.Y, quat.Z, quat.W);
   }
   
-  public static void SetOrient(this BodyHandle handle, Quaternion orient)
+  public static void SetOrient(this BodyHandle handle, Simulation sim, Quaternion orient)
   {
-    var desc = Client.Penki.Simulation.Bodies.GetDescription(handle);
-    Client.Penki.Simulation.Bodies.ApplyDescription(handle, desc with
+    var desc = sim.Bodies.GetDescription(handle);
+    sim.Bodies.ApplyDescription(handle, desc with
     {
       Pose = desc.Pose with { Orientation = orient.ToNumerics() }
     });
   }
   
-  public static Quaternion GetOrient(this BodyHandle handle)
+  public static Quaternion GetOrient(this BodyHandle handle, Simulation sim)
   {
-    return Client.Penki.Simulation.Bodies.GetDescription(handle).Pose.Orientation.ToTk();
+    return sim.Bodies.GetDescription(handle).Pose.Orientation.ToTk();
   }
 
   public static void Return<T>(this T[] arr)

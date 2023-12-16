@@ -20,6 +20,5 @@ void main() {
   v_light_space_pos = u_light_proj * u_light_view * u_model * vec4(pos, 1.);
   v_pos = pos;
   v_uv = uv;
-//   v_norm = norm;
   v_norm = mat3(transpose(inverse(u_model))) * norm;
 }
