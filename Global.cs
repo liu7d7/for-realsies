@@ -137,6 +137,11 @@ public static class Extensions
     });
   }
   
+  public static BodyDescription GetDesc(this BodyHandle handle, Simulation sim)
+  {
+    return sim.Bodies.GetDescription(handle);
+  }
+  
   public static Vec3 GetPos(this BodyHandle handle, Simulation sim)
   {
     return sim.Bodies.GetDescription(handle).Pose.Position.ToTk();

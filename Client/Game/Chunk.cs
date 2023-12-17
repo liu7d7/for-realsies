@@ -133,14 +133,14 @@ public class Chunk
     
     for (int i = 0; i < 5; i++)
     {
-      world.Add(new Ball(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
-      world.Add(new Ball(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+      world.Add(new Ball(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 17 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+      world.Add(new Ball(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 17 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
     }
     
     for (int i = 0; i < 5; i++)
     {
-      world.Add(new Cube(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
-      world.Add(new Cube(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 12 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+      world.Add(new Cube(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 17 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
+      world.Add(new Cube(world, GetPos(Quality / 2, Quality / 2) + Vec3.UnitY * 17 + new Vec3(Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12), Random.Shared.Next(-12, 12))));
     }
     
     verts.Return();

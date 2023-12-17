@@ -427,14 +427,12 @@ public class InstancedModel
           GL.Disable(EnableCap.CullFace);
         }
 
-        obj.Vao.Draw(PrimType.Triangles);
+        obj.Vao.DrawInstanced(PrimitiveType.Triangles, it._transforms.Count);
 
         if (!obj.Mat.Cull)
         {
           GL.Enable(EnableCap.CullFace);
         }
-
-        obj.Vao.DrawInstanced(PrimitiveType.Triangles, it._transforms.Count);
       }
     }
   }

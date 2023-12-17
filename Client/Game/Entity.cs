@@ -5,6 +5,7 @@ namespace Penki.Client.Game;
 public abstract class Entity
 {
   public World World;
+  public bool WasViewed;
   
   public Entity(World world)
   {
@@ -17,7 +18,17 @@ public abstract class Entity
   public abstract void Draw(Mat4 model, RenderSource source);
   public abstract void Tick(float dt);
 
-  public void OnCollide(Entity other)
+  public virtual void OnCollide(Entity other)
+  {
+    
+  }
+
+  public virtual void EnterView()
+  {
+    
+  }
+
+  public virtual void ExitView()
   {
     
   }

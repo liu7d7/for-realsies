@@ -1,7 +1,6 @@
 ﻿using BepuPhysics;
 using BepuPhysics.Constraints;
 using BepuUtilities;
-using BepuUtilities.Memory;
 using OpenTK.Mathematics;
 using Penki.Client.Engine;
 
@@ -27,7 +26,7 @@ public class World
     _entities.Add(entity);
   }
 
-  private const int RenderDistance = 6;
+  private const int RenderDistance = 4;
 
   private void GenerateChunks()
   {
@@ -69,7 +68,22 @@ public class World
     
     foreach (var it in _entities)
     {
-      if (it.Pos.Dist(Penki.Cam.Pos) > 100) continue;
+      if (it.Pos.Dist(Penki.Cam.Pos) > RenderDistance * Chunk.Size)
+      {
+        if (it.WasViewed)
+        {
+          it.WasViewed = false;
+          it.ExitView();
+        }
+        
+        continue;
+      }
+
+      if (!it.WasViewed)
+      {
+        it.WasViewed = true;
+        it.EnterView();
+      }
       
       it.Tick(dt);
     }

@@ -86,6 +86,8 @@ public class Vao
     {
       GL.DrawArrays(type, 0, _size());
     }
+
+    Penki.Tris += _size() / 3;
   }
   
   public void DrawInstanced(PrimType type, int instanceCount)
@@ -100,6 +102,8 @@ public class Vao
     }
 
     GL.DrawArraysInstanced(type, 0, _size(), instanceCount);
+    
+    Penki.Tris += _size() / 3 * instanceCount;
   }
 
   public static int AttribSizeInBytes(Attrib it)

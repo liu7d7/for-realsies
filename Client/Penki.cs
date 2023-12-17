@@ -88,6 +88,8 @@ public static class Penki
   private static readonly Lazy<Lightmap> _lightmap =
     new(() => new Lightmap(8192, 8192));
 
+  public static long Tris;
+
   private static Mat4 Ortho =>
     Mat4.CreateOrthographicOffCenter(0, Size.X, Size.Y, 0, -1, 1);
 
@@ -226,8 +228,18 @@ public static class Penki
     Font.Draw($"cpos: {_player.Get.Pos.ToChunk().X}, {_player.Get.Pos.ToChunk().Y}", 10, 50, Vec3.One, true);
     Font.Draw($"fps: {1.0 / _fps.Average:.00}", 10, 90, Vec3.One, true);
     Font.Draw($"mem: {GC.GetTotalMemory(false) / 1024 / 1024}M", 10, 130, Vec3.One, true);
+    Font.Draw($"tris: {Tris}", 10, 170, Vec3.One, true);
+
+    var bodies = 0;
+    for (int i = 0; i < _world.Sim.Bodies.Sets.Length; i++)
+    {
+      bodies += _world.Sim.Bodies.Sets[i].Count;
+    }
+    
+    Font.Draw($"bodies: {bodies}", 10, 210, Vec3.One, true);
 
     _win.SwapBuffers();
+    Tris = 0;
   }
 
   private static void Resize(ResizeEventArgs args)
